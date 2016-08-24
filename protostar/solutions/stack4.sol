@@ -1,0 +1,11 @@
+In this exercise we wish to overflow buffer to overwrite the the return address (the value pushed by call when calling main()).  For success we'll overwrite it with the address of the win() function.  Using objdump -d ./stack4 we can easily find the address of win(), namely it is 0x080483f4.  
+
+Because we can't easily fill a string with the correct value we'll use the same trick we used in the stack3 exercise.  When ready to enter the winning input run this command to enable us to input non-printable characters into the stdin of the executing stack4 program.
+
+1) while read -r line; do echo -e $line; done | ../binaries/stack4
+
+To determine the winning input, we must figure out how many characters to enter before entering the address of win().  Analysis of the assembly output from objdump -d stack4 will get us close.  We see in main() that once the stack frame is built we subtract 0x50 from %esp, then push $esp + 0x10 as the argument for gets().  But not before 'and $0xfffffff0 %esp' is executed.  It is this instruction that adds some ambiguity, as it isn't clear what the value of %esp is at run-time with just a quick glance at the assembly dump.  However, we could simply make a few guesses since it will reduce the value of %esp by at most 0x0f (15).  Otherwise, we can analyze the program by running gdb and setting a breakpoint at 0x804840b and viewing the runtime behavior.  I used the latter approach and found that the 'and' operation reduced the stack pointer by 8.  So, now we can calculate that the start of buffer is 0x8+0x50-0x10+0x4 = 0x4C or 76 bytes below the return address.  In the expression 0x8 comes from the 'and' operation, 0x50 is from the 'sub' operation -0x10 is from the 'lea' operation and the 0x4 is from the 'push %ebp' operation all seen readily in the main() function assembly dump.  Whence, after running the above shell command (1) enter the following to win!
+
+2) aaaaaaaaaabbbbbbbbbbaaaaaaaaaabbbbbbbbbbaaaaaaaaaabbbbbbbbbbccccaaaaaaaaaaaa\xf4\x83\x04\x08
+
+Note, in the above input there are 76 characters before we enter the address of win(), just as calculated above.
