@@ -9,3 +9,5 @@ To determine the winning input, we must figure out how many characters to enter 
 2) aaaaaaaaaabbbbbbbbbbaaaaaaaaaabbbbbbbbbbaaaaaaaaaabbbbbbbbbbccccaaaaaaaaaaaa\xf4\x83\x04\x08
 
 Note, in the above input there are 76 characters before we enter the address of win(), just as calculated above.
+
+Note also, that because I'm performing analysis of the exploit-exercises on my own environment (as opposed to the VM provided in the challenges) some of my solutions may not be valid on the VM.  In the case of this exercise, the only thing that could have impact is the 'and 0xfffffff0 %esp' instruction.
