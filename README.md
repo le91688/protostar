@@ -1,3 +1,3 @@
 # protostar
-protostar sploits
+protostar sploits and solutions 
 https://exploit-exercises.com/protostar
