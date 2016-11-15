@@ -4,7 +4,7 @@ https://exploit-exercises.com/protostar
 
 NOTE: write ups in progress. Adding python exploit poc's to each excercise for practice!
 
-##Stack0
+#Stack0
 ---------------------------------------
 ###Source Code:
 ```C
@@ -52,7 +52,7 @@ print cproc.communicate(input)[0]
         
         
 
-##Stack1
+#Stack1
 ---------------------------------------
 ###Source Code:
 ```C
