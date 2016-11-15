@@ -46,6 +46,11 @@ input=fill+"1"
 cproc = Popen("./stack0", stdin=PIPE, stdout=PIPE)
 print cproc.communicate(input)[0]   
 ```
+        
+        
+        
+        
+        
 
 ##Stack1
 ---------------------------------------
