@@ -6,7 +6,7 @@ NOTE: write ups in progress. Adding python exploit poc's to each excercise for p
 
 ##Stack0
 ---------------------------------------
-Source Code:
+###Source Code:
 ```C
 int main(int argc, char **argv)
 {
@@ -23,7 +23,7 @@ int main(int argc, char **argv)
   }
 }
 ```
-###Stack looks like:
+###Stack:
 
 | eip | ebp | modified(0) |   buffer    |
 
