@@ -26,6 +26,7 @@ int main(int argc, char **argv)
  ---------------------------------------
 | eip | ebp | modified(0) |   buffer    |
  ---------------------------------------
+###The plan:
 fill buffer with gets 
 since buffer = 64 bytes, an input of 65 bytes should overflow and overwrite modified
 
