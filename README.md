@@ -218,7 +218,10 @@ after reviewing your assembly, you can see the following
  8048437:	c3                   	ret   
 ```
 ####gdb
-simply use x win in gdb to print the memory location of win
+use the following command in gdb to print the memory location of win
+```
+x win
+```
 
 we now know win is at 0x08048424 in memory, so we craft an input that overflows into fp with this location (adjusted for endianess) 
 ###winning command:
