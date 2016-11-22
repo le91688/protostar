@@ -299,32 +299,32 @@ Dump of assembler code for function main:
    0x08048411 <+9>:     lea    0x10(%esp),%eax
    0x08048415 <+13>:    mov    %eax,(%esp)
    0x08048418 <+16>:    call   0x804830c <gets@plt>
-   0x0804841d <+21>:    leave  
+   0x0804841d <+21>:    leave                                  #<--- set a break here, right after gets loads buffer with data
    0x0804841e <+22>:    ret    
 End of assembler dump.
-(gdb) b *0x0804841d
+(gdb) b *0x0804841d                                           #set breakpoint 
 Breakpoint 1 at 0x804841d: file stack4/stack4.c, line 16.
 (gdb) run
 Starting program: /home/ubuntu/workspace/proto/stack4 
-aaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaa                                   #run with some garbage data
 
 Breakpoint 1, main (argc=1, argv=0xffffd1c4) at stack4/stack4.c:16
 16      stack4/stack4.c: No such file or directory.
-(gdb) x/40wx $esp
+(gdb) x/40wx $esp                                              #lets check out our stack 
 0xffffd0d0:     0xffffd0e0      0xffffd0fe      0xf7e25bf8      0xf7e4c273
-0xffffd0e0:     0x61616161      0x61616161      0x61616161      0x61616161
+0xffffd0e0:     0x61616161      0x61616161      0x61616161      0x61616161 #<--- we can see our input starts here
 0xffffd0f0:     0x61616161      0x61616161      0x00616161      0x08048449
 0xffffd100:     0x08048430      0x08048340      0x00000000      0xf7e4c42d
 0xffffd110:     0xf7fc33c4      0xf7ffd000      0x0804843b      0xf7fc3000
-0xffffd120:     0x08048430      0x00000000      0x00000000      0xf7e32a83
+0xffffd120:     0x08048430      0x00000000      0x00000000      0xf7e32a83  #<--- EIP
 0xffffd130:     0x00000001      0xffffd1c4      0xffffd1cc      0xf7feacea
 0xffffd140:     0x00000001      0xffffd1c4      0xffffd164      0x08049600
 0xffffd150:     0x08048218      0xf7fc3000      0x00000000      0x00000000
 0xffffd160:     0x00000000      0xebc5d5ee      0xd23331fe      0x00000000
-(gdb) p $ebp
+(gdb) p $ebp                                                   #find where EBP is, since EIP is right next to this
 $1 = (void *) 0xffffd128
-(gdb) p 0xffffd12c - 0xffffd0e0                                                                                                                                                                   
-$2 = 76
+(gdb) p 0xffffd12c - 0xffffd0e0                                #get the offset by subtracting start of input from EIP location                                                                                                                                                          
+$2 = 76                            
 (gdb) 
 ```
 Now we know the offset is actually 76 so we can craft an input and test
