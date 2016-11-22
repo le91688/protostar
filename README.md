@@ -4,7 +4,7 @@ https://exploit-exercises.com/protostar
 
 NOTE: write ups in progress. Adding python exploit poc's to each excercise for practice!
 
-[Stack0](#Stack4)
+[Stack0](#stack4)
 
 #Stack0
 ---------------------------------------
