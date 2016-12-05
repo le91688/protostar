@@ -500,6 +500,11 @@ Illegal instruction (core dumped)   #not so fast!
 ``` 
 So what happened? Well, there are some differences in how the program runs when you run it normally and within GDB (guessing due to env variables, a wrapper will also fix this ). 
 So we will take a look at the core dump to see what's going on and see where exactly everything sits in memory when a user runs the program.
+First run the following command to allow core dumps to be saved
+```bash
+ulimit -c unlimited 
+```
+Now we can get into how to examine core dumps with gdb!
 ```bash
 $ python -c "print 'a'*76+'xxxx'" | ./stack5
 Segmentation fault (core dumped)
