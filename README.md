@@ -14,6 +14,7 @@ NOTE: write ups in progress. Adding python exploit poc's to each excercise for p
 |[Stack3](#stack3)|
 |[Stack4](#stack4)|
 |[Stack5](#stack5)|
+|[Stack6](#stack6)|
 |[Format0](#format0)|
 |[Format1](#format1)|
 |[Format2](#format2)|
@@ -598,13 +599,13 @@ First we need to find our offset
 l:~/workspace/proto (master) $ ulimit -s unlimited
 l:~/workspace/proto (master) $ gdb ./stack6      
 gdb$ disas getpath
-Dump of assembler code for function getpath:
 ```
 ```asm
+  Dump of assembler code for function getpath:
    0x08048484 <+0>:     push   ebp
    0x08048485 <+1>:     mov    ebp,esp
    0x08048487 <+3>:     sub    esp,0x68
-=> 0x0804848a <+6>:     mov    eax,0x80485d0
+   0x0804848a <+6>:     mov    eax,0x80485d0
    0x0804848f <+11>:    mov    DWORD PTR [esp],eax
    0x08048492 <+14>:    call   0x80483c0 <printf@plt>
    0x08048497 <+19>:    mov    eax,ds:0x8049720
@@ -633,14 +634,14 @@ Dump of assembler code for function getpath:
    0x080484f3 <+111>:   call   0x80483c0 <printf@plt>
    0x080484f8 <+116>:   leave  
    0x080484f9 <+117>:   ret  
+   End of assembler dump.
 ```
 ```bash
-End of assembler dump.
 gdb$ b *0x080484f9 
 Breakpoint 1 at 0x80484f9: file stack6/stack6.c, line 23.
 gdb$ run
 Starting program: /home/ubuntu/workspace/proto/stack6 
-input path please: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+input path please: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa            #< --- some junk input
 got path aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 --------------------------------------------------------------------------[regs]
   EAX: 0x00000035  EBX: 0x55736000  ECX: 0x00000000  EDX: 0x55737898  o d I t S z a p c 
