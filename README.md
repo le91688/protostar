@@ -748,15 +748,18 @@ int main(int argc, char **argv)
 }
 ```
 ###Stack:
-|EIP|EBP|BUFFER|
+| EIP | EBP | BUFFER |
 
 ###Plan:
 So for this challenge, its basically the same as stack6, but strdup is called. This function allocates space on the heap and copies a string to it. Knowing this, stack7 could be solved by predicting the heap location and jumping there to execute shellcode, but I wanted to experiment with chaining ROP gadgets. I will do my best to explain the whole process so that it hopefully proves useful for someone out there trying to learn!
 
 ###Resources:
 http://codearcana.com/posts/2013/05/28/introduction-to-return-oriented-programming-rop.html
+
 https://www.exploit-db.com/docs/28479.pdf
+
 https://www.tutorialspoint.com/assembly_programming/assembly_system_calls.htm
+
 http://rotlogix.com/2016/05/03/arm-exploit-exercises/
 
 ###ROP Gadgets---- What exactly are they?
@@ -767,10 +770,7 @@ pop $eax;
 ret;
 ```
 ###What can we do with them? 
-We can piece together a bunch of ROP gadgets, along with values on our stack to perform just about anything. In my example we will be executing a system call to execve with specific parameters in order to get a shell. After we design our stack with the proper values and rop gadgets, we will end up with a call that looks like this
-```c
-execve('/bin/sh',0,0)
-```
+We can piece together a bunch of ROP gadgets, along with values on our stack to perform just about anything. In my example we will be executing a system call to execve with specific parameters in order to get a shell. After we design our stack with the proper values and rop gadgets, we will be getting a shell via execve.
 
 First things first, we will find our offset and what input we need to overwrite our EIP so that we can jump to a location in memory.
 Luckily, stack7 is nearly identical to stack6, so we can take the offset from there ( See stack6 write up for walkthrough!)
@@ -804,10 +804,10 @@ le91688:/usr/include/asm $ cat unistd_32.h | grep "execve"
 #define __NR_execve 11
 ```
 So we see that 11 or 0xb is our value we want EAX to be when we call our interrupt.  Now that we have our system call figured out, we need to figure out what parameters to pass to it, and what registers to use.
----------
-Reccomended Reading:
+
+Recommended Reading:
 http://hackoftheday.securitytube.net/2013/04/demystifying-execve-shellcode-stack.html
----------
+
 Lets check out EXECVE by looking at the man page:
 ```bash
 le91688:$ man execve
@@ -829,7 +829,10 @@ in our case, a ptr to "/bin/sh"
 The second is the list of args to the program, and since we are not running /bin/sh with any args, we can set this to a null byte
 ####envp[]
 the third arg is for environment options, again we'll set this to a null byte
-
+Our call should look like this:
+```c
+execve('/bin/sh',0,0)
+```
 So now we know how we need to call execve, now we need to figure out how to do it.
 
 To perform our system call we do the following:
