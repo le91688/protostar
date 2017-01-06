@@ -812,7 +812,7 @@ http://hackoftheday.securitytube.net/2013/04/demystifying-execve-shellcode-stack
 Lets check out EXECVE by looking at the man page:
 ```bash
 le91688:$ man execve
-EXECVE(2)                                             Linux Programmer's Manual                           EXECVE(2)
+EXECVE(2)                                             Linux Programmer's Manual                  EXECVE(2)
 
 NAME
        execve - execute program
