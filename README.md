@@ -780,7 +780,7 @@ So, our goal is to creat a system call to execve(x,y,z).
 
 Recommended reading: https://www.tutorialspoint.com/assembly_programming/assembly_system_calls.htm 
 
-We see that during a system call, a value is pushed to EAX and then INT 0x80(interrupt) to call the kernel. 
+We see that during a system call, EAX is set to a specific value and then INT 0x80(interrupt) to call the kernel. 
 So we need to figure out what value we need to load into EAX for execve.
 
 Notice in the source code, we have 
