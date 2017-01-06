@@ -882,14 +882,13 @@ le91688:~/workspace/proto$ grep -w "xor eax, eax" LIBCgadgets
 le91688:~/workspace/proto$ grep -w "xor eax, eax" LIBCgadgets
 ```
 Using this i'm able to find the following
----------------+
-useful gadgets :
----------------+
-0x000f9482  : pop ecx ; pop ebx ; ret       #load values from stack to ECX, EBX
-0x00001aa2  : pop edx ; ret                 #load value in EDX
-0x001454c6  : add eax, 0xb ; ret            #add 0xb to EAX
-0x0002f0ec  : xor eax, eax ; ret            #Zero out EAX
-0x0002e725  : int 0x80                      #syscall
+| useful gadgets                     |
+| :------------------------------- | 
+|0x000f9482  : pop ecx ; pop ebx ; ret       #load values from stack to ECX, EBX|
+|0x00001aa2  : pop edx ; ret                 #load value in EDX|
+|0x001454c6  : add eax, 0xb ; ret            #add 0xb to EAX|
+|0x0002f0ec  : xor eax, eax ; ret            #Zero out EAX|
+|0x0002e725  : int 0x80                      #syscall|
 
 Now, the memory values for each gadget are the offset within the loaded library, so we need to get the base address of the library when its loaded.
 
@@ -938,7 +937,7 @@ So we have can see that our library libc-2.19.so is loaded in memory starting at
 
 We are starting to get a pile of info, but I promise it will all come together soon, beautifully!
 Next, lets design our stack:
-----higher memory---
+higher memory
 +----------------------+
 |...  INT0x80       ...|  syscall should be "execve( "/bin/sh",0,0)
 +----------------------+
