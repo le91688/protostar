@@ -837,9 +837,8 @@ execve('/bin/sh',0,0)
 So now we know how we need to call execve, now we need to figure out how to do it.
 
 To perform our system call we do the following:
-
-1.Put the system call number in the EAX register.
-2.Store the arguments to the system call in the registers EBX, ECX, etc.
+*Put the system call number in the EAX register.
+*.Store the arguments to the system call in the registers EBX, ECX, etc.
 
 This means we need our registers set up like this
 ```asm
