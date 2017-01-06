@@ -777,7 +777,8 @@ Luckily, stack7 is nearly identical to stack6, so we can take the offset from th
 So we have our offset(0x50). Now it's time to formulate a plan and design our stack.
 
 So, our goal is to creat a system call to execve(x,y,z). 
-(Recommended reading: https://www.tutorialspoint.com/assembly_programming/assembly_system_calls.htm )
+
+Recommended reading: https://www.tutorialspoint.com/assembly_programming/assembly_system_calls.htm 
 
 We see that during a system call, a value is pushed to EAX and then INT 0x80(interrupt) to call the kernel. 
 So we need to figure out what value we need to load into EAX for execve.
@@ -848,7 +849,9 @@ EDX = 0x0
 ```
 Now we need to go gather some gadgets to make the magic happen. 
 I used ROPgadget, you can grab it here:
+
 https://github.com/JonathanSalwan/ROPgadget
+
 NOTE: i realize i'm not using this tool to its fullest potential, but I will show how I was able to grab gadgets, if you have any tips feel free to comment!  I also saw the --ROPchain switch, but thats no fun ;)
 
 At first, I tried running ROPgadget on the binary ( ./stack7) itself, and only found ~70 gadgets, but nothing useful.  After some professional help (thanks @rotlogix) , I learned that you need to run it on the library itself.
