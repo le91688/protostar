@@ -941,25 +941,25 @@ Next, lets design our stack:
 ```asm
 higher memory
 +----------------------+
-|...  INT0x80       ...|  syscall should be "execve( "/bin/sh",0,0)
+|   INT0x80            |  syscall should be "execve( "/bin/sh",0,0)
 +----------------------+
-| add eax, 0xb ; ret   |  add 0xb to EAX (to call execve with 11)
+|   add eax, 0xb ; ret |  add 0xb to EAX (to call execve with 11)
 +----------------------+
-| xor eax,eax ; ret    |  ensure EAX is 0
+|   xor eax,eax ; ret  |  ensure EAX is 0
 +----------------------+
-|  .\x00\x00\x00\x00  .|
+|   \x00\x00\x00\x00   |
 +----------------------+
-|...ptr  "/bin/sh/" ...|  
+|   ptr to "/bin/sh/"  |  
 +----------------------+
 |pop $ecx,pop $ebx; ret|  load ECX with NULL and EBX with 'bin/sh'
 +----------------------+
-|  \x00\x00\x00\x00   .|
+|  \x00\x00\x00\x00    |
 +----------------------+
-|   ...pop $edx, ret ..|  load EDX with NULL
+|   pop $edx, ret      |  load EDX with NULL
 +----------------------+
-|...EBP = "BBBB"   ....|  Our overflow
+|   EBP = "BBBB"       |  Our overflow
 +----------------------+
-|...filler A's ...     |  
+|   filler A's         |  
 ---------------------- +
 ---lower memory---
 ```
