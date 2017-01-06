@@ -798,7 +798,7 @@ I got snagged here for a bit. I did these challenges on a 64 bit system, so I ha
 /usr/include/asm/unistd_x32.h
 /usr/include/asm/unistd_32.h
 ```
-The others check your architecture and point you to correct header, and since our program was compiled for x86, we use actually use the following header file:
+The others check your architecture and point you to correct header, and since our program was compiled for x86, we actually use the following header file:
 /usr/include/asm/unistd_32.h
 ```bash
 le91688:/usr/include/asm $ cat unistd_32.h | grep "execve"
