@@ -842,7 +842,7 @@ To perform our system call we do the following:
 
 This means we need our registers set up like this
 ```asm
-EAX = 11 (sys call value for execve)
+EAX = 0xb (sys call value for execve)
 EBX = ptr to "/bin/sh"
 ECX = 0x0
 EDX = 0x0
