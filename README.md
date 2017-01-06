@@ -874,8 +874,6 @@ So now we can run ROPgadget on libc.so.6 and pipe it to a file "LIBCgadgets" I w
 ```bash
 le91688:~/workspace/proto$ ROPgadget --binary /lib/i386-linux-gnu/libc.so.6 > ./LIBCgadgets
 le91688:~/workspace/proto$ grep -w "xor eax, eax" LIBCgadgets
-```
-```asm
 0x0007a1fb : test eax, eax ; jne 0x7a1f6 ; xor eax, eax ; ret
 0x00094908 : test eax, eax ; jne 0x94986 ; xor eax, eax ; ret
 0x00094937 : test eax, eax ; jne 0x949a6 ; xor eax, eax ; ret
@@ -883,8 +881,6 @@ le91688:~/workspace/proto$ grep -w "xor eax, eax" LIBCgadgets
 0x000949bd : xor bl, al ; nop ; xor eax, eax ; ret
 0x001466dc : xor byte ptr [edx], al ; add byte ptr [eax], al ; xor eax, eax ; ret
 0x0002f0ec : xor eax, eax ; ret
-```
-```bash
 le91688:~/workspace/proto$ grep -w "xor eax, eax" LIBCgadgets
 ```
 Using this i'm able to find the following useful gadgets:
