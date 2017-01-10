@@ -1115,22 +1115,22 @@ void run()
 
   unsigned int wanted;
 
-  wanted = random();         #generate random value for wanted
+  wanted = random();         //generate random value for wanted
 
-  sprintf(fub, "%d", wanted);  #cast wanted as string in fub
+  sprintf(fub, "%d", wanted);  //cast wanted as string in fub
 
-  if(write(0, &wanted, sizeof(wanted)) != sizeof(wanted)) {   #write 4 bytes of wanted
+  if(write(0, &wanted, sizeof(wanted)) != sizeof(wanted)) {   //write 4 bytes of wanted
       errx(1, ":(\n");
   }
 
-  if(fgets(buf, sizeof(buf)-1, stdin) == NULL) {              #fgets input from stdin
+  if(fgets(buf, sizeof(buf)-1, stdin) == NULL) {              //fgets input from stdin
       errx(1, ":(\n");
   }
 
   q = strchr(buf, '\r'); if(q) *q = 0;
   q = strchr(buf, '\n'); if(q) *q = 0;
 
-  if(strcmp(fub, buf) == 0) {                               #make sure they match
+  if(strcmp(fub, buf) == 0) {                               //make sure they match
       printf("you correctly sent the data\n");
   } else {
       printf("you didn't send the data properly\n");
