@@ -22,7 +22,7 @@ NOTE: write ups in progress. Adding python exploit poc's to each excercise for p
 |[Heap0](#Heap0)|
 |[Heap1](#Heap1)|
 |[net0](#net0)|
-
+|[net1](#net1)|
 
 
 
@@ -1092,6 +1092,102 @@ client.send (struct.pack('<I',int(value))) #pack as little endian
 #recieve data
 response = client.recv(4096)
 
+print response
+```
+
+
+##net1
+---------------------------------------
+###Source Code:
+```C
+#include "../common/common.c"
+
+#define NAME "net1"
+#define UID 998
+#define GID 998
+#define PORT 2998
+
+void run()
+{
+  char buf[12];
+  char fub[12];
+  char *q;
+
+  unsigned int wanted;
+
+  wanted = random();         #generate random value for wanted
+
+  sprintf(fub, "%d", wanted);  #cast wanted as string in fub
+
+  if(write(0, &wanted, sizeof(wanted)) != sizeof(wanted)) {   #write 4 bytes of wanted
+      errx(1, ":(\n");
+  }
+
+  if(fgets(buf, sizeof(buf)-1, stdin) == NULL) {              #fgets input from stdin
+      errx(1, ":(\n");
+  }
+
+  q = strchr(buf, '\r'); if(q) *q = 0;
+  q = strchr(buf, '\n'); if(q) *q = 0;
+
+  if(strcmp(fub, buf) == 0) {                               #make sure they match
+      printf("you correctly sent the data\n");
+  } else {
+      printf("you didn't send the data properly\n");
+  }
+}
+
+int main(int argc, char **argv, char **envp)  #set up listener
+{
+  int fd;
+  char *username;
+
+  /* Run the process as a daemon */
+  background_process(NAME, UID, GID); 
+  
+  /* Wait for socket activity and return */
+  fd = serve_forever(PORT);
+
+  /* Set the client socket to STDIN, STDOUT, and STDERR */
+  set_io(fd);
+
+  /* Don't do this :> */
+  srandom(time(NULL));
+
+  run();
+}
+```
+
+###Plan:
+More socket programming with some value conversions 
+
+###Python solution:
+```Python
+import socket
+import struct
+
+target_host = "localhost"
+target_port = 2998
+NULL= '\x00'
+
+#create socket obj
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#connect the client
+client.connect ( (target_host,target_port))
+
+#get wanted variable
+wanted = client.recv(4096)
+#unpack wanted as an unsigned int
+unpacked = struct.unpack('=I',fub)
+
+print "sending ", str(unpacked[0])
+#cast the unsigned int as string and send
+client.send (str(unpacked[0]) )
+#add null byte just in case
+client.send (NULL)
+
+#get response
+response = client.recv(4096)
 print response
 ```
 
