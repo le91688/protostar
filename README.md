@@ -419,6 +419,8 @@ Next, fire up GDB
 $ gdb ./stack5
 Reading symbols from ./stack5...done.
 gdb$ disas main
+```
+```asm
 Dump of assembler code for function main:
    0x080483c4 <+0>:     push   %ebp
    0x080483c5 <+1>:     mov    %esp,%ebp
@@ -430,7 +432,8 @@ Dump of assembler code for function main:
    0x080483d9 <+21>:    leave  
    0x080483da <+22>:    ret    
 End of assembler dump.
-
+```
+```bash
 gdb$ b *0x080483d9                                                              #break right after gets
 Breakpoint 1 at 0x80483d9: file stack5/stack5.c, line 11.
 gdb$ run
