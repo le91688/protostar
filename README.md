@@ -20,6 +20,7 @@ NOTE: write ups in progress. Adding python exploit poc's to each excercise for p
 |[Format1](#format1)|
 |[Format2](#format2)|
 |[heap0](#heap0)|
+|[heap1](#heap1)|
 |[net0](#net0)|
 |[net1](#net1)|
 |[net2](#net2)|
