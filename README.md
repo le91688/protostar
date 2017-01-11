@@ -19,7 +19,7 @@ NOTE: write ups in progress. Adding python exploit poc's to each excercise for p
 |[Format0](#format0)|
 |[Format1](#format1)|
 |[Format2](#format2)|
-|[Heap0](#Heap0)|
+|[heap0](#heap0)|
 |[net0](#net0)|
 |[net1](#net1)|
 |[net2](#net2)|
@@ -1352,7 +1352,7 @@ python -c 'print "\xe4\x96\x04\x08"+"%59x."+"%4$n"' | ./format2
 ```
 
 
-##Heap0
+##heap0
 ---------------------------------------
 ###Source Code:
 ```C
