@@ -23,7 +23,7 @@ NOTE: write ups in progress. Adding python exploit poc's to each excercise for p
 |[Heap1](#Heap1)|
 |[net0](#net0)|
 |[net1](#net1)|
-
+|[net2](#net2)|
 
 
 #Stack0
@@ -1185,6 +1185,112 @@ print "sending ", str(unpacked[0])
 client.send (str(unpacked[0]) )
 #add null byte just in case
 client.send (NULL)
+
+#get response
+response = client.recv(4096)
+print response
+```
+
+##Net2
+---------------------------------------
+###Source Code:
+```C
+#include "../common/common.c"
+
+#define NAME "net2"
+#define UID 997
+#define GID 997
+#define PORT 2997
+
+void run()
+{
+  unsigned int quad[4];
+  int i;
+  unsigned int result, wanted;
+
+  result = 0;
+  for(i = 0; i < 4; i++) {        
+      quad[i] = random();  //populate array quad with random unsigned ints
+      result += quad[i];   //sum all elements of quad as unsigned int in result 
+
+      if(write(0, &(quad[i]), sizeof(result)) != sizeof(result)) {   //print to the socket
+          errx(1, ":(\n");                  
+      }
+  }
+
+  if(read(0, &wanted, sizeof(result)) != sizeof(result)) { //read your input
+      errx(1, ":<\n");
+  }
+
+
+  if(result == wanted) {                            //goals
+      printf("you added them correctly\n");
+  } else {
+      printf("sorry, try again. invalid\n");
+  }
+}
+
+int main(int argc, char **argv, char **envp)
+{
+  int fd;
+  char *username;
+
+  /* Run the process as a daemon */
+  background_process(NAME, UID, GID); 
+  
+  /* Wait for socket activity and return */
+  fd = serve_forever(PORT);
+
+  /* Set the client socket to STDIN, STDOUT, and STDERR */
+  set_io(fd);
+
+  /* Don't do this :> */
+  srandom(time(NULL));
+
+  run();
+}
+```
+
+###Plan:
+This one populates an array and sums the elements into result. It sends you a write() of each array element concatenated as a string.
+So we split the string into an array, unpack each element, sum them up, then pack as an int and send it back!  See code comments for details
+###Python:
+```Python
+import socket
+import struct
+from ctypes import *
+target_host = "localhost"
+target_port = 2997
+
+#create socket obj
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#connect the client
+client.connect ( (target_host,target_port))
+#get quad elements concatted
+var = client.recv(4096)
+#print hex
+print "Hex value of var: ", var.encode('hex')
+#split by 4
+print "splitting into array"
+n=4
+newlist = [var[i:i+n] for i in range(0, len(var), n)]
+#print array in hex 
+print [x.encode('hex') for x in newlist]
+#unpack as an int
+print "unpacking as integers"
+intlist = map(lambda x: struct.unpack('=I',x),newlist) 
+#grab only first element of tuple
+intlist = map(lambda x:x[0],intlist) 
+print intlist
+print "add em up to equal:", sum(intlist)
+#convert to unsigned int
+summed = c_uint(sum(intlist))
+print "converted to unsigned int:" ,summed.value
+#pack as int
+packed = struct.pack('=I',summed.value)
+print "sending  ", packed
+#send data
+client.send (packed) 
 
 #get response
 response = client.recv(4096)
