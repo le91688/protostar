@@ -1268,27 +1268,22 @@ client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect ( (target_host,target_port))
 #get quad elements concatted
 var = client.recv(4096)
-#print hex
-print "Hex value of var: ", var.encode('hex')
+
 #split by 4
-print "splitting into array"
 n=4
 newlist = [var[i:i+n] for i in range(0, len(var), n)]
-#print array in hex 
-print [x.encode('hex') for x in newlist]
+
 #unpack as an int
-print "unpacking as integers"
 intlist = map(lambda x: struct.unpack('=I',x),newlist) 
 #grab only first element of tuple
 intlist = map(lambda x:x[0],intlist) 
-print intlist
-print "add em up to equal:", sum(intlist)
+
 #convert to unsigned int
 summed = c_uint(sum(intlist))
-print "converted to unsigned int:" ,summed.value
+
 #pack as int
 packed = struct.pack('=I',summed.value)
-print "sending  ", packed
+
 #send data
 client.send (packed) 
 
