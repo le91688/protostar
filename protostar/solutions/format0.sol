@@ -1,3 +1,0 @@
-To solve format0 we wish to write the integer value 0xdeadbeef into the target variable allocated on the stack in vuln().  Gdb can be used to view variable layout on the stack.  Doing this we discover target lays on the stack at an address just above the end of buffer.  If we can overflow buffer, then we should be able to easily overwrite target.  Note, the exercise specifies that this challenge should be able to be won with an input of under 10 bytes.  So, instead of simply overflowing the buffer via a large input, we cleverly use a format string which pads an integer to the desired size when being copied.  Since, buffer is 64 bytes, and no int requires 64 bytes to be represented the following input should do the trick:
-
-./format0 `echo -e "%64x\xef\xbe\xad\xde"`
