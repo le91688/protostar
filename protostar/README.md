@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # protostar
 protostar sploits and solutions 
 https://exploit-exercises.com/protostar
@@ -1408,6 +1407,3 @@ int main(int argc, char **argv)
 ###Python exploit:
 ```Python
 ```
-=======
-exploit exercises write ups
->>>>>>> 05dc9f8578d356a0aeb574c41e0e0d686bfbd10e
