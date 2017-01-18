@@ -1717,3 +1717,65 @@ Now we just have to figure out how we want to use this. We can overwrite the i2.
 run $(python -c "print 'a'*20+'\x9c\xd0\xff\xff'") $(python -c "print '\x94\x84\x04\x08'")
 ```
 
+## Heap2
+
+### Source Code:
+
+```c
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+#include <stdio.h>
+
+struct auth {     //define some struct
+  char name[32];
+  int auth;
+};
+
+struct auth *auth; //pointer to that struct
+char *service;      //pointer to char
+
+int main(int argc, char **argv)
+{
+  char line[128];   //our buffer
+
+  while(1) {  //infinite loop
+      printf("[ auth = %p, service = %p ]\n", auth, service);
+
+      if(fgets(line, sizeof(line), stdin) == NULL) break; //fgets to our buffer from stdin
+      
+      if(strncmp(line, "auth ", 5) == 0) {    //if input = auth
+          auth = malloc(sizeof(auth));        //allocate memory for struct auth
+          memset(auth, 0, sizeof(auth));      //zero out
+          if(strlen(line + 5) < 31) {         // check size of input after auth is <31
+              strcpy(auth->name, line + 5);   // if so, copy to name field of auth struct (32 bytes)
+          }
+      }
+      if(strncmp(line, "reset", 5) == 0) {  // if you enter reset, free auth
+          free(auth);
+      }
+      if(strncmp(line, "service", 6) == 0) {  //set service with "service x"
+          service = strdup(line + 7);
+      }
+      if(strncmp(line, "login", 5) == 0) {   //if you enter login
+          if(auth->auth) {                   //check auth field of struct
+              printf("you have logged in already!\n");
+          } else {
+              printf("please enter your password\n");
+          }
+      }
+  }
+}
+```
+
+### Walkthrough:
+
+
+### winning command:
+```bash
+```
+### Python exploit:
+```python
+```
+
