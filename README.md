@@ -23,7 +23,7 @@ NOTE: write ups in progress!
 |[net0](#net0)|
 |[net1](#net1)|
 |[net2](#net2)|
-
+|[final0](#final0)|
 
 # Stack0
 
@@ -1801,7 +1801,7 @@ you have logged in already!
 
 ```
 
-## Final0 
+## final0 
 
 ###Source Code:
 
