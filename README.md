@@ -1922,4 +1922,13 @@ except socket.errno:
     raise
 
 ```
+### Winning command
 
+```bash
+l$ ./final0.py
+[*]Connecting to target
+[*]Sending Payload
+enjoy your shell ;)
+whoami
+root
+```
