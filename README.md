@@ -24,6 +24,7 @@ NOTE: write ups in progress!
 |[net1](#net1)|
 |[net2](#net2)|
 |[final0](#final0)|
+|[final1](#final1)|
 
 # Stack0
 
@@ -1933,7 +1934,24 @@ whoami
 root
 ```
 
-## Final 1
+## Final1
+
+
+### Source Code:
+```c
+
+```
+### Stack:
+
+
+### Plan:
+
+
+### winning command:
+
+```bash
+```
+### Python exploit:
 
 ```python 
 #! /usr/bin/python
@@ -1975,3 +1993,5 @@ try:
 except socket.errno:
     raise
 ```
+
+
